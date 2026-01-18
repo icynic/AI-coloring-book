@@ -1,0 +1,10 @@
+diffusers
+transformers
+accelerate
+torch
+opencv-python
+pillow
+protobuf
+scipy
+controlnet_aux
+peft
