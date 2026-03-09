@@ -24,16 +24,16 @@ class ColoringPageGenerator:
 
         # 3. Load Stable Diffusion Pipeline
         self.pipe = StableDiffusionControlNetPipeline.from_pretrained(
-            # "runwayml/stable-diffusion-v1-5",
+            "runwayml/stable-diffusion-v1-5",
             # "Lykon/DreamShaper",
-            "xyn-ai/anything-v4.0",
+            # "xyn-ai/anything-v4.0",
             controlnet=self.controlnet,
             torch_dtype=self.dtype,
             safety_checker=None
         )
         
-        # Load LoRa
-        print("Loading LoRa...")
+        # Load LoRA
+        print("Loading LoRA...")
         self.pipe.load_lora_weights(
             "beatless/AnimeLineartLoRA"
         ) # <lora:animeoutlineV3-000008:0.5>
