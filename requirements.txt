@@ -1,0 +1,13 @@
+wikipedia-api
+requests
+# You may need to install torch with CUDA support manually
+torch
+transformers>=5.5.0
+numpy
+Pillow
+diffusers
+controlnet-aux
+
+accelerate
+peft
+opencv-python

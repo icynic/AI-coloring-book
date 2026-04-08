@@ -23,3 +23,21 @@ Tried base model Lykon/DreamShaper. The result looks more artistic than realisti
 Tried base model xyn-ai/anything-v4.0. The result is too anime-like
 
 Tried vision language models. They can't output images.
+
+---
+
+Fetching information from Wikipedia
+Tried two libraries: wikipedia and wikipedia-api. wikipedia is simpler and doesn't require an user agent, but is essentially abandonware. wikipedia-api is better.
+By default, wikipedia.summary() has auto_suggest=True, which can actually lead to incorrect results for a correct title. For example, for "Marie Curie", it returns the result of "marie cure" and a page error. May got GuessedAtParserWarning because it scrapes the html page.
+
+To handle inaccurate search subjects, I need to use the search function to get the correct title and then use the summary function to get the summary. But wikipedia library has a search function, while wikipedia-api doesn't. So I need to use requests to hit the official Wikimedia API directly.
+I added a parameter fuzzy_search to the search_and_get_summary function to control whether to search for pages before fetching the summary. With fuzzy_search=True, queries like "marie cure", "marie-curie" will be corrected to "Marie Curie", otherwise it will return "No page found."
+Actually, wikipedia-api does have a search function, but it's not as good as the raw API call with opensearch action. For "Marie Curi", it returns an unrelated page. This is because wikipedia-api uses full-text search, while the opensearch action uses title-based search.
+
+Similarly, wikipedia-api has a function to get images, but it returns a full list of images, not just the portrait. I need to use requests to hit the official Wikimedia API directly to get the portrait image.
+
+I have impemented Fetcher.py, Summarizer.py, Generator.py and main.py. Now I can run main.py to get the coloring page of a person. But there is room for improvements, like batch processing, fixing the warnings, etc.
+
+Everyone who wants to run this project on GPU may need to install torch with CUDA support manually. Please refer to https://pytorch.org/get-started/locally/
+
+AI image generation is hardware-dependent. Someone running the code on a CPU will get a different coloring page than someone running it on an GPU.
