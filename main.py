@@ -4,7 +4,7 @@ from Generator import ColoringPageGenerator
 
 
 def main():
-    names = ["Marie Curie", "Albert Einstein"]  # Add the names you want to process to this list
+    names = ["Marie Curie", "Max Planck"]  # Add the names you want to process to this list
 
     summarizer = Summarizer()
     generator = ColoringPageGenerator()

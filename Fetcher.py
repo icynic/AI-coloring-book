@@ -104,9 +104,9 @@ def _download_image(image_url, title, save_folder=None):
         return None
 
 if __name__ == "__main__":
-    result = get_person_info("Marie Curie", # Required
+    result = get_person_info("Albert Einstein", # Required
                             fuzzy_search=True, # Optional
-                            save_folder="images") # Optional, only saves if folder is provided
+                            save_folder="images") # Optional, only saves if a folder is provided
     
     print(result['title'])
     print(result['summary'])

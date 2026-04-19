@@ -71,6 +71,7 @@ class ColoringPageGenerator:
         strength=0.6,
         guidance_scale=10,
         control_image_path=None,
+        seed=None,
     ):
 
         print(f"Processing {image_path}...")
@@ -94,7 +95,9 @@ class ColoringPageGenerator:
             control_image.save(control_image_path)  # Optional: save debug
 
         # Generate
-        generator = torch.manual_seed(42)
+        if seed is None:
+            seed = torch.randint(0, 1000000, (1,)).item()
+        generator = torch.manual_seed(seed)
 
         result = self.pipe(
             prompt,
@@ -108,31 +111,42 @@ class ColoringPageGenerator:
 
         result.save(output_path)
         print(f"Done! Saved to {output_path}")
+        print(f"Seed: {seed}")
 
 
 if __name__ == "__main__":
     # Example usage
     generator = ColoringPageGenerator()
 
-    input_image_path = "images/Marie_Curie.jpg"
-    output_image_path = "images/marie_curie_output.png"
-    control_image_path = "images/debug_control_image.png" 
+    input_image_path = "images/Albert_Einstein.jpg"
+    # input_image_path = "images/Max_Planck.jpg"
+    # input_image_path = "images/Marie_Curie.jpg"
+
+    output_image_path = input_image_path.rsplit(".", 1)[0] + "_output.png"
+    control_image_path = input_image_path.rsplit(".", 1)[0] + "_debug_control_image.png"
 
     # prompt = "c0l0ringb00k, portrait, coloring page, black and white, line art, high contrast, clean lines, white background, masterpiece, best quality, monochrome, flat, low detail, cartoon style, distinct outlines"
     prompt = "c0l0ringb00k, black and white coloring page, line art, white background, thick lines"
     negative_prompt = "shadow, shading, gradients, stippling, screentone, texture, background details, flowers, plants, stripes, grayscale, colored, 3d, realistic, photo, noise, blurry, deformed, filled, filled-in, filled-in lines, filled-in shapes, filled-in patterns, filled background"
 
+    # The number of iterations the AI uses to "clean up" (denoise) the image.
     steps = 15
+    # How strictly the AI must obey the ControlNet line art extracted from the original photo.
     strength = 0.6
+    # How strongly the AI should obey your text prompt
     guidance_scale = 10
 
+    seed = 42
+    # seed = None
+
     generator.process_image(
-        input_image_path, # Required
-        output_image_path, # Required
-        prompt, # Optional
-        negative_prompt, # Optional
-        steps, # Optional
-        strength, # Optional
-        guidance_scale, # Optional
-        control_image_path, # Optional: save debug control image
+        input_image_path,  # Required
+        output_image_path,  # Required
+        prompt,  # Optional
+        negative_prompt,  # Optional
+        steps,  # Optional
+        strength,  # Optional
+        guidance_scale,  # Optional
+        control_image_path,  # Optional: save debug control image
+        seed,  # Optional
     )
