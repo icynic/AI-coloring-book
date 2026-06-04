@@ -47,6 +47,6 @@ Anyway, the pipleline is complete. The rest is optimization.
 
 Final Conclusion:
 Turned out I was right all along.
-Tried two another deep learning approaches: "Joint Geometric-Semantic Driven Character Line Drawing Generation_output" and "Quality Metric Guided Portrait Line Drawing Generation from Unpaired Training Data_output". Both are not bette than Informative Drawings. I tried apply preprocessing and postprocessing on top of Informative Drawings but the improvement is marginal. There seems to be fundamental limitations on these pure deep learning based approaches.
+Tried two another deep learning approaches: "Joint Geometric-Semantic Driven Character Line Drawing Generation" and "Quality Metric Guided Portrait Line Drawing Generation from Unpaired Training Data". Both are not bette than Informative Drawings. I tried apply preprocessing and postprocessing on top of Informative Drawings but the improvement is marginal. There seems to be fundamental limitations on these pure deep learning based approaches.
 Tried to run FLUX.2 [klein] 4b on their playground and on Google Colab (paid 11 euros to use the L4 GPU with 22.5GB VRAM). The results are great. 
 Had Codex wrote a script `GeneratorFlux2KleinL4Colab.py` for Colab.
