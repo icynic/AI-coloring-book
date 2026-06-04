@@ -6,7 +6,7 @@ from diffusers import (
     ControlNetModel,
     UniPCMultistepScheduler,
 )
-from controlnet_aux import LineartDetector
+from controlnet_aux import LineartDetector, CannyDetector, PidiNetDetector
 import os
 
 
@@ -20,13 +20,18 @@ class ColoringPageGenerator:
 
         # 1. Load ControlNet
         self.controlnet = ControlNetModel.from_pretrained(
-            "lllyasviel/control_v11p_sd15_lineart", torch_dtype=self.dtype
+            "lllyasviel/control_v11p_sd15_lineart",
+            # "lllyasviel/control_v11p_sd15_canny",
+            # "lllyasviel/control_v11p_sd15_softedge",
+            torch_dtype=self.dtype,
         )
         print("ControlNet loaded successfully.")
 
         # 2. Load Lineart Detector
         self.processor = LineartDetector.from_pretrained("lllyasviel/Annotators")
-        print("Lineart Detector loaded successfully.")
+        # self.processor = CannyDetector()
+        # self.processor = PidiNetDetector.from_pretrained("lllyasviel/Annotators")
+        print("Soft Edge Detector loaded successfully.")
 
         # 3. Load Stable Diffusion Pipeline
         self.pipe = StableDiffusionControlNetPipeline.from_pretrained(
@@ -37,12 +42,25 @@ class ColoringPageGenerator:
             torch_dtype=self.dtype,
             safety_checker=None,
         )
+        
+        ##################################################################### Load local model
+        # self.pipe = StableDiffusionControlNetPipeline.from_single_file(
+        #     "models/coloringPage_v10.safetensors",
+        #     controlnet=self.controlnet,
+        #     torch_dtype=self.dtype,
+        #     safety_checker=None,
+        # )
+        #####################################################################
 
         # Load LoRA
         print("Loading LoRA...")
         self.pipe.load_lora_weights(
             "beatless/AnimeLineartLoRA"
-        )  # <lora:animeoutlineV3-000008:0.5>
+            # "ColoringBookRedmond15V-LiberteRedmond-ColoringBookAF.safetensors"
+            # "animeoutlineV4_16.safetensors"
+            # "models/EroticLineart.safetensors"
+            # "models/linebaby.safetensors"
+        ) # <lora:animeoutlineV3-000008:0.5>
 
         # 4. Optimize
         self.pipe.scheduler = UniPCMultistepScheduler.from_config(
@@ -114,6 +132,41 @@ class ColoringPageGenerator:
         print(f"Seed: {seed}")
 
 
+    def generate_batch_from_control_image(
+        self,
+        control_image_path,
+        output_prefix,
+        count=5,
+        prompt="c0l0ringb00k, black and white coloring page, line art, white background, thick lines",
+        negative_prompt="shadow, shading, gradients, stippling, screentone, texture, background details, flowers, plants, stripes, grayscale, colored, 3d, realistic, photo, noise, blurry, deformed, filled, filled-in, filled-in lines, filled-in shapes, filled-in patterns, filled background",
+        steps=15,
+        strength=0.6,
+        guidance_scale=10,
+    ):
+        print(f"Loading existing control image: {control_image_path}")
+        control_image = self.load_image(control_image_path)
+
+        for i in range(count):
+            seed = torch.randint(0, 1000000, (1,)).item()
+            generator = torch.manual_seed(seed)
+            
+            output_path = f"{output_prefix}_{i+1}_seed_{seed}.png"
+            print(f"Generating image {i+1}/{count} with seed {seed}...")
+
+            result = self.pipe(
+                prompt,
+                image=control_image,
+                negative_prompt=negative_prompt,
+                num_inference_steps=steps,
+                generator=generator,
+                controlnet_conditioning_scale=strength,
+                guidance_scale=guidance_scale,
+            ).images[0]
+
+            result.save(output_path)
+            print(f"Done! Saved to {output_path} (Seed: {seed})")
+
+
 if __name__ == "__main__":
     # Example usage
     generator = ColoringPageGenerator()
@@ -126,27 +179,45 @@ if __name__ == "__main__":
     control_image_path = input_image_path.rsplit(".", 1)[0] + "_debug_control_image.png"
 
     # prompt = "c0l0ringb00k, portrait, coloring page, black and white, line art, high contrast, clean lines, white background, masterpiece, best quality, monochrome, flat, low detail, cartoon style, distinct outlines"
-    prompt = "c0l0ringb00k, black and white coloring page, line art, white background, thick lines"
-    negative_prompt = "shadow, shading, gradients, stippling, screentone, texture, background details, flowers, plants, stripes, grayscale, colored, 3d, realistic, photo, noise, blurry, deformed, filled, filled-in, filled-in lines, filled-in shapes, filled-in patterns, filled background"
+    # prompt = "c0l0ringb00k, black and white coloring page, line art, white background, thick lines, portrait"
+    prompt="c0l0ringb00k, Coloring page of a portrait, thick lines"
+    negative_prompt = "realistic, shadow, shading, gradients, stippling, screentone, texture, background details, grayscale, colored, 3d, photo, noise, blurry, deformed, filled, filled-in, filled-in lines, filled-in shapes, filled-in patterns, filled background, bad, bad art, lowres, ugly, poorly drawn, text, logo, colors, "
+    # negative_prompt=""
 
     # The number of iterations the AI uses to "clean up" (denoise) the image.
     steps = 15
     # How strictly the AI must obey the ControlNet line art extracted from the original photo.
     strength = 0.6
     # How strongly the AI should obey your text prompt
-    guidance_scale = 10
+    guidance_scale = 7.5
 
-    # seed = 42
-    seed = None
+    seed = 24
+    # seed = None
 
-    generator.process_image(
-        input_image_path,  # Required
-        output_image_path,  # Required
-        prompt,  # Optional
-        negative_prompt,  # Optional
-        steps,  # Optional
-        strength,  # Optional
-        guidance_scale,  # Optional
-        control_image_path,  # Optional: save debug control image
-        seed,  # Optional
+    # generator.process_image(
+    #     input_image_path,  # Required
+    #     output_image_path,  # Required
+    #     prompt,  # Optional
+    #     negative_prompt,  # Optional
+    #     steps,  # Optional
+    #     strength,  # Optional
+    #     guidance_scale,  # Optional
+    #     control_image_path,  # Optional: save debug control image
+    #     seed,  # Optional
+    # )
+
+    # 假设你已经有一张提取好的边缘图
+    # existing_control_image = "images/Max_Planck_debug_control_image.png"
+    existing_control_image = "images/Marie_Curie_debug_control_image.png"
+    
+    # 批量生成 5 张新图，前缀为 Max_Planck_batch
+    generator.generate_batch_from_control_image(
+        control_image_path=existing_control_image,
+        output_prefix="images/Marie_Curie_batch",
+        count=5,               # 生成的数量
+        prompt=prompt,
+        negative_prompt=negative_prompt,
+        steps=steps,
+        strength=strength,
+        guidance_scale=guidance_scale
     )

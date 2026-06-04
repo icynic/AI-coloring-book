@@ -4,20 +4,15 @@ Which is more close to edge detecting
 Traditional edge detection (like Canny or HED) gives you exact structure but overwhelming noise. Stable Diffusion gives you beautiful, clean lines, but its generative nature compels it to hallucinate textures, extra shapes, and shading that don't exist in the original photo. Even with a Lineart ControlNet, SD is fundamentally a pixel-generating engine that wants to fill empty space.
 
 Tried Nano banana and ChatGPT 
-multimodal vision-language models (VLMs) like them work much better
-because they possess "common sense." They don't look at a photo of a furry dog and see a million tiny shadow gradients; they just see a "dog" and know a dog has a single outer silhouette.
+They are natively multimodal, not just a LLM bolted onto an off-the-shelf diffusion model. They translate both the text and image into a shared semantic space.
 
-Actually, there are two ways:
-1. The LLM writes a detailed text description of the source image, appends the modification request, and then sends the text prompt to the Diffusion model.
-2. The LLM passes The Text Prompt and The Noisy Latents (Mathematical representation of the source image) to the Diffusion model.
-
-looked into Differentiable Vector Rendering.
+Looked into Differentiable Vector Rendering.
 Instead of asking a model to generate a grid of pixels that look like lines, these models are forced to output mathematical SVG coordinates (Bézier curves). Because they can only draw continuous strokes, it is physically impossible for them to generate pixel noise or complex hallucinated textures.
 SwiftSketch outputs distorted shapes, DiffSketcher does not take an image as input and it outputs a draft rather than coloring page, CLIPasso & CLIPascene are better but they still have messy lines.
 
 Although I loaded three lora models, only the last one is actually effective. However, if I use the keyword "<lora:animeoutlineV3-000008:0.5>" in the prompt, it will produce pure anime faces.
 Not adding this keyword is better.
-Somehow, using the prompt "c0l0ringb00k" for the second lora is better than "coloringbook" or removing it.
+Somehow, using the prompt "c0l0ringb00k" from the second lora is better than "coloringbook" or removing it.
 
 Tried base model Lykon/DreamShaper. The result looks more artistic than realistic.
 Tried base model xyn-ai/anything-v4.0. The result is too anime-like
@@ -41,3 +36,17 @@ I have impemented Fetcher.py, Summarizer.py, Generator.py and main.py. Now I can
 Everyone who wants to run this project on GPU may need to install torch with CUDA support manually. Please refer to https://pytorch.org/get-started/locally/
 
 AI image generation is hardware-dependent. Someone running the code on a CPU will get a different coloring page than someone running it on an GPU.
+
+---
+
+Conclusion: Stable diffusion is just not capable enough. It was released in 2022 and is already outdated. 
+I could try stable diffusion XL, stable diffusion 3, FLUX, GLM-Image, etc. But my GPU doesn't have enough VRAM.
+Anyway, the pipleline is complete. The rest is optimization.
+
+---
+
+Final Conclusion:
+Turned out I was right all along.
+Tried two another deep learning approaches: "Joint Geometric-Semantic Driven Character Line Drawing Generation_output" and "Quality Metric Guided Portrait Line Drawing Generation from Unpaired Training Data_output". Both are awful. There seems to be fundamental limitations on these pure deep learning based approaches.
+Tried to run FLUX.2 [klein] 4b on their playground and on Google Colab (paid 11 euros to use the L4 GPU with 22.5GB VRAM). The results are great. 
+Had Codex wrote a script `GeneratorFlux2KleinL4Colab.py` for Colab.
