@@ -1,114 +1,224 @@
-import wikipediaapi
-import requests
-import urllib.parse
+"""Fetch biographical text, a lead image, and reproducibility metadata."""
+
+from __future__ import annotations
+
+from datetime import datetime, timezone
+import hashlib
+import html
 import os
+import re
+import urllib.parse
 
-# Define the User-Agent globally so we can use it across functions
-USER_AGENT = "AIColoringBook"
+import requests
 
-def get_person_info(query, fuzzy_search=True, save_folder=None):
-    wiki = wikipediaapi.Wikipedia(user_agent=USER_AGENT, language="en")
-    title = query
 
-    if fuzzy_search:
-        # 1. Search using the raw Wikimedia API
-        search_url = "https://en.wikipedia.org/w/api.php"
-        params = {
-            "action": "opensearch",
-            "search": query,
-            "limit": 1,
-            "namespace": 0,
-            "format": "json",
-        }
+WIKIMEDIA_API_URL = "https://en.wikipedia.org/w/api.php"
+USER_AGENT = os.environ.get(
+    "AICOLORINGBOOK_USER_AGENT",
+    "AIColoringBook/1.0 (academic research project; contact via project repository)",
+)
+REQUEST_TIMEOUT = 30
 
-        response = requests.get(
-            search_url, params=params, headers={"User-Agent": USER_AGENT}
-        )
-        results = response.json()
 
-        # Extract the first title from the results
-        if results[1]:
-            title = results[1][0]
-        else:
-            print("Error: No page found.")
-            return {"title": title, "summary": None, "image_url": None, "image_path": None}
-
-    # 2. Get the page summary using wikipediaapi
-    page = wiki.page(title)
-    if not page.exists():
-        print("Error: No page found.")
-        return {"title": title, "summary": None, "image_url": None, "image_path": None}
-    
-    summary = page.summary
-
-    # 3. Get the portrait/main image using Wikipedia's REST API
-    image_url = None
-    formatted_title = urllib.parse.quote(title.replace(" ", "_"))
-    rest_url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{formatted_title}"
-    
-    rest_response = requests.get(rest_url, headers={"User-Agent": USER_AGENT})
-    
-    if rest_response.status_code == 200:
-        page_data = rest_response.json()
-        if "originalimage" in page_data:
-            image_url = page_data["originalimage"]["source"]
-        elif "thumbnail" in page_data:
-            image_url = page_data["thumbnail"]["source"]
-
-    image_path = None
-    if save_folder:
-        image_path = _download_image(image_url, title, save_folder=save_folder)
-
+def _empty_result(title: str) -> dict:
     return {
         "title": title,
-        "summary": summary,
-        "image_url": image_url,
-        "image_path": image_path
+        "summary": None,
+        "image_url": None,
+        "image_path": None,
+        "page_id": None,
+        "revision_id": None,
+        "revision_timestamp": None,
+        "page_url": None,
+        "retrieved_at": datetime.now(timezone.utc).isoformat(),
+        "image_title": None,
+        "image_license": None,
+        "image_license_url": None,
+        "image_artist": None,
+        "image_credit": None,
+        "source_text_sha256": None,
+        "image_sha256": None,
+        "image_sha1": None,
+        "image_timestamp": None,
+        "image_user": None,
     }
 
-def _download_image(image_url, title, save_folder=None):
+
+def _plain_text(value: str | None) -> str | None:
+    if not value:
+        return None
+    value = re.sub(r"<[^>]+>", " ", value)
+    value = html.unescape(value)
+    return re.sub(r"\s+", " ", value).strip() or None
+
+
+def _extmetadata_value(metadata: dict, key: str) -> str | None:
+    entry = metadata.get(key) or {}
+    return _plain_text(entry.get("value"))
+
+
+def _fetch_page_metadata(session: requests.Session, title: str) -> dict:
+    """Return the exact Wikipedia revision and Wikimedia image attribution."""
+    response = session.get(
+        WIKIMEDIA_API_URL,
+        params={
+            "action": "query",
+            "prop": "info|revisions|pageimages|extracts",
+            "inprop": "url",
+            "rvprop": "ids|timestamp",
+            "piprop": "name|original|thumbnail",
+            "pithumbsize": 1600,
+            "exintro": 1,
+            "explaintext": 1,
+            "redirects": 1,
+            "titles": title,
+            "format": "json",
+            "formatversion": 2,
+        },
+        timeout=REQUEST_TIMEOUT,
+    )
+    response.raise_for_status()
+    pages = response.json().get("query", {}).get("pages", [])
+    if not pages or pages[0].get("missing"):
+        return {}
+
+    page = pages[0]
+    revision = (page.get("revisions") or [{}])[0]
+    image_title = page.get("pageimage")
+    result = {
+        "title": page.get("title", title),
+        "summary": page.get("extract"),
+        "page_id": page.get("pageid"),
+        "revision_id": revision.get("revid"),
+        "revision_timestamp": revision.get("timestamp"),
+        "page_url": page.get("fullurl"),
+        "image_title": image_title,
+        "image_url": (page.get("original") or page.get("thumbnail") or {}).get("source"),
+    }
+
+    if not image_title:
+        return result
+
+    image_response = session.get(
+        WIKIMEDIA_API_URL,
+        params={
+            "action": "query",
+            "prop": "imageinfo",
+            "iiprop": "url|extmetadata|sha1|timestamp|user",
+            "titles": f"File:{image_title}",
+            "format": "json",
+            "formatversion": 2,
+        },
+        timeout=REQUEST_TIMEOUT,
+    )
+    image_response.raise_for_status()
+    image_pages = image_response.json().get("query", {}).get("pages", [])
+    image_info = ((image_pages[0].get("imageinfo") or [{}])[0]) if image_pages else {}
+    metadata = image_info.get("extmetadata") or {}
+
+    result["image_url"] = image_info.get("url") or result["image_url"]
+    result.update(
+        {
+            "image_license": _extmetadata_value(metadata, "LicenseShortName")
+            or _extmetadata_value(metadata, "UsageTerms"),
+            "image_license_url": _extmetadata_value(metadata, "LicenseUrl"),
+            "image_artist": _extmetadata_value(metadata, "Artist"),
+            "image_credit": _extmetadata_value(metadata, "Credit"),
+            "image_sha1": image_info.get("sha1"),
+            "image_timestamp": image_info.get("timestamp"),
+            "image_user": image_info.get("user"),
+        }
+    )
+    return result
+
+
+def get_person_info(query, fuzzy_search=True, save_folder=None):
+    """Fetch a person's English Wikipedia lead and main image.
+
+    Metadata is returned with every sample so experiments can be traced to an
+    exact Wikipedia revision and the source image can be attributed correctly.
+    """
+    session = requests.Session()
+    session.headers.update({"User-Agent": USER_AGENT})
+    title = query
+
+    try:
+        if fuzzy_search:
+            response = session.get(
+                WIKIMEDIA_API_URL,
+                params={
+                    "action": "opensearch",
+                    "search": query,
+                    "limit": 1,
+                    "namespace": 0,
+                    "format": "json",
+                },
+                timeout=REQUEST_TIMEOUT,
+            )
+            response.raise_for_status()
+            results = response.json()
+            if len(results) < 2 or not results[1]:
+                print(f"Error: no Wikipedia page found for {query!r}.")
+                return _empty_result(title)
+            title = results[1][0]
+
+        metadata = _fetch_page_metadata(session, title)
+        if not metadata.get("page_id"):
+            print(f"Error: no Wikipedia page found for {title!r}.")
+            return _empty_result(title)
+
+        title = metadata.get("title", title)
+        result = _empty_result(title)
+        result.update(metadata)
+        if result.get("summary"):
+            result["source_text_sha256"] = hashlib.sha256(
+                result["summary"].encode("utf-8")
+            ).hexdigest()
+
+        if save_folder:
+            result["image_path"] = _download_image(
+                result.get("image_url"), title, save_folder=save_folder, session=session
+            )
+            if result["image_path"]:
+                with open(result["image_path"], "rb") as image_file:
+                    result["image_sha256"] = hashlib.sha256(image_file.read()).hexdigest()
+        return result
+    except (requests.RequestException, ValueError) as exc:
+        print(f"Failed to fetch {query!r}: {exc}")
+        result = _empty_result(title)
+        result["error"] = str(exc)
+        return result
+
+
+def _download_image(image_url, title, save_folder=None, session=None):
     if not image_url:
         print("No image URL found to download.")
         return None
 
-    # Parse the URL to get the file extension (e.g., .jpg, .png)
     parsed_url = urllib.parse.urlparse(image_url)
     _, ext = os.path.splitext(parsed_url.path)
-    if not ext:
-        ext = ".jpg"
-
-    # Create a safe filename (replace spaces and slashes)
-    safe_title = title.replace(" ", "_").replace("/", "_")
+    ext = ext if ext and len(ext) <= 6 else ".jpg"
+    safe_title = re.sub(r"[^A-Za-z0-9._-]+", "_", title).strip("_")
     filename = f"{safe_title}{ext}"
-    
-    if save_folder and save_folder != ".":
-        os.makedirs(save_folder, exist_ok=True)
-        filepath = os.path.join(save_folder, filename)
-    else:
-        filepath = filename
+    filepath = os.path.join(save_folder, filename) if save_folder else filename
+    os.makedirs(os.path.dirname(filepath) or ".", exist_ok=True)
 
-    # print(f"Downloading image to: {filepath}")
-    
     try:
-        response = requests.get(image_url, headers={"User-Agent": USER_AGENT})
+        client = session or requests.Session()
+        if session is None:
+            client.headers.update({"User-Agent": USER_AGENT})
+        response = client.get(image_url, timeout=REQUEST_TIMEOUT)
         response.raise_for_status()
-        
-        with open(filepath, 'wb') as file:
+        with open(filepath, "wb") as file:
             file.write(response.content)
-
         print(f"Saved image to: {filepath}")
         return filepath
-        
-    except requests.exceptions.RequestException as e:
-        print(f"Failed to download image: {e}")
+    except requests.RequestException as exc:
+        print(f"Failed to download image: {exc}")
         return None
 
+
 if __name__ == "__main__":
-    result = get_person_info("Marie Curie", # Required
-                            fuzzy_search=True, # Optional
-                            save_folder="images") # Optional, only saves if a folder is provided
-    
-    print(result['title'])
-    print(result['summary'])
-    print(result['image_url'])
-    print(result['image_path'])
+    person = get_person_info("Marie Curie", fuzzy_search=True, save_folder="images")
+    for key, value in person.items():
+        print(f"{key}: {value}")

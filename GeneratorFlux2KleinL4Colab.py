@@ -20,6 +20,7 @@ import argparse
 import gc
 import os
 from pathlib import Path
+import time
 
 os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
 
@@ -42,6 +43,9 @@ except ImportError:
     PipelineQuantizationConfig = None
 
 
+DEFAULT_MODEL_REVISION = "e7b7dc27f91deacad38e78976d1f2b499d76a294"
+
+
 class Flux2KleinL4ColoringPageGenerator:
     def __init__(
         self,
@@ -50,11 +54,22 @@ class Flux2KleinL4ColoringPageGenerator:
         quantization="none",
         offload=False,
         enable_vae_tiling=False,
+        revision=DEFAULT_MODEL_REVISION,
     ):
         print("Loading FLUX.2 [klein] for Colab L4...")
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.dtype = dtype or (torch.float16 if self.device == "cuda" else torch.float32)
+        if dtype is None:
+            if self.device == "cuda" and torch.cuda.is_bf16_supported():
+                dtype = torch.bfloat16
+            elif self.device == "cuda":
+                dtype = torch.float16
+            else:
+                dtype = torch.float32
+        self.dtype = dtype
+        self.model_id = model_id
+        self.revision = revision
         self.quantization = quantization
+        self.last_run_metadata = None
 
         if self.device == "cuda":
             torch.backends.cuda.matmul.allow_tf32 = True
@@ -72,14 +87,18 @@ class Flux2KleinL4ColoringPageGenerator:
             "torch_dtype": self.dtype,
             "low_cpu_mem_usage": True,
         }
+        if revision:
+            load_kwargs["revision"] = revision
 
         quantization_config = self._build_quantization_config(quantization)
         if quantization_config is not None:
             load_kwargs["quantization_config"] = quantization_config
 
+        load_started_at = time.perf_counter()
         self.pipe = Flux2KleinPipeline.from_pretrained(model_id, **load_kwargs)
         self._place_pipeline(offload=offload)
         self._enable_memory_helpers(enable_vae_tiling=enable_vae_tiling)
+        self.model_load_seconds = round(time.perf_counter() - load_started_at, 3)
 
         print("Model loaded successfully.")
 
@@ -199,6 +218,7 @@ class Flux2KleinL4ColoringPageGenerator:
     ):
         print(f"Processing {image_path}...")
 
+        started_at = time.perf_counter()
         image = self.load_image(image_path)
         image = self.resize_to_flux_bounds(image, max_side=max_side)
         width, height = image.size
@@ -236,9 +256,28 @@ class Flux2KleinL4ColoringPageGenerator:
 
         print(f"Done! Saved to {output_path}")
         print(f"Seed: {seed}")
+        peak_gb = None
         if self.device == "cuda":
             peak_gb = torch.cuda.max_memory_allocated() / 1024**3
             print(f"Peak CUDA memory allocated: {peak_gb:.2f} GB")
+
+        self.last_run_metadata = {
+            "model_id": self.model_id,
+            "model_revision": self.revision,
+            "quantization": self.quantization,
+            "dtype": str(self.dtype),
+            "device": self.device,
+            "seed": seed,
+            "steps": steps,
+            "guidance_scale": guidance_scale,
+            "width": width,
+            "height": height,
+            "max_sequence_length": max_sequence_length,
+            "elapsed_seconds": round(time.perf_counter() - started_at, 3),
+            "peak_cuda_memory_gb": round(peak_gb, 3) if peak_gb is not None else None,
+            "prompt": final_prompt,
+            "model_load_seconds": self.model_load_seconds,
+        }
 
         return result
 
@@ -345,6 +384,7 @@ def parse_args():
     parser.add_argument("--input", default="images/Marie_Curie.jpg")
     parser.add_argument("--output", default=None)
     parser.add_argument("--model", default="black-forest-labs/FLUX.2-klein-4B")
+    parser.add_argument("--revision", default=DEFAULT_MODEL_REVISION)
     parser.add_argument("--steps", type=int, default=4)
     parser.add_argument("--guidance-scale", type=float, default=1.0)
     parser.add_argument("--max-side", type=int, default=768)
@@ -380,6 +420,7 @@ if __name__ == "__main__":
             quantization=args.quantization,
             offload=args.offload,
             enable_vae_tiling=args.vae_tiling,
+            revision=args.revision,
         )
         if args.count == 1:
             generator.process_image(

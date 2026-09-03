@@ -1,53 +1,132 @@
-Project AI Coloring Book Guideline
+# AI Coloring Book
 
-Tasks
-This topic was inspired by the picture books at https://supercoolstoryteller.com/supercoolscientists. The goal is to evaluate whether current AI tools (text generation and image-to-image models) can create something similar while retaining truthfulness, and whether this can be done almost entirely automatically. If successful, a picture book featuring people from the University of Marburg could be created in time for the university's 800-year celebrations in 2027.
+AI Coloring Book is a reproducible pipeline that turns a list of historical
+figures into printable biographical coloring-book pages. It retrieves grounded
+source material from English Wikipedia, writes a child-oriented biography with
+Qwen3.5-4B, edits the source portrait into line art with FLUX.2 [klein] 4B, and
+renders individual pages plus a combined A4 PDF book.
 
-Source:
-https://en.wikipedia.org/wiki/Marie_Curie
-Drawing:
-[https://huggingface.co/spaces/awacke1/Image-to-Line-Drawings, no post-processing]
-Description:
-Marie Curie (1867–1934) was a Polish-French scientist famous for her work on radioactivity. She was the first woman to win a Nobel Prize and the only person to win it in two different sciences (Physics and Chemistry). She discovered polonium and radium, created mobile X-ray units for WWI, and founded research institutes in Paris and Warsaw. She died from radiation exposure but remains one of history's most celebrated scientists.
-[generated with Mistral.AI from the first paragraph of the wiki page]
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/icynic/AI-coloring-book/blob/main/colab/AIColoringBook.ipynb)
 
-The task is to develop a software framework to generate a coloring book automatically, given a list of names. Possible subtasks:
- * Implement / adapt crawler for wikipedia.
- * Analyse different AI models for text simplification /summarization, and image to image transformation for their suitability. Come up with a good evaluation to decide "suitability".
- * Implement a tool that checks the correctness of facts in the generated text.
- * Implement a software pipeline that automatically generates single pages of a coloring book with open source models.
- * Finetune or prompt-engineer models to optimize the output. Add postprocessing (e.g., simple image filters) to optimize the images.
- 
-Helpful Starters:
- * https://huggingface.co/ for AI models
- * https://opencv.org/ for classical computer vision tasks
- 
+## Final system
 
-Procedures and Deadlines Project Work (Master project)
-| Setup Meeting | Oct 29th | Project Commitment, Teams, Organisation, Clarification on Requirements and Deliverables | XAI-Lab |
-|---|---|---|---|
-| MS 1 | 10.-14.11. | Definition MVP, Technologies chosen, Plan for next Sprint | Students |
-| MS 2 | 15.-19.Dec. | Implementation 1st Prototype, Plan for next Sprint | Students |
-| MS 3 | April | Implementation 2nd Prototype, Plan for next Sprint | Students |
-| Ms 4 | July | Implementation 3rd Prototype, Plan for next Sprint | Students |
-| Final Deliverable | 29.9.2026 | Final Deliverable (Details below) | Students |
+```text
+Names
+  -> Wikipedia lead, exact revision, portrait, and license metadata
+  -> Qwen/Qwen3.5-4B grounded biography and supporting sentence IDs
+  -> release Qwen GPU memory
+  -> black-forest-labs/FLUX.2-klein-4B portrait-to-line-art editing
+  -> individual A4 pages, combined PDF, and reproducibility manifest
+```
 
-Final Deliverable
- * Final Prototype
- * Software incl. Documentation
- * Demo Video (3-5 minutes, screencast demonstrating the system)
- * End Report (8 pages, 2 column ACL style)
- 
-Report Format
-We'll be going for a two-column conference style paper of maximum 8 pages. Additionally, you have unlimited space for references and informative appendices. The style files to be used are those of the Association of Computational Linguistics (ACL) conference, which can be found here, together with paper templates: https://github.com/acl-org/acl-style-files/
+The text and image models are deliberately loaded in separate stages. They do
+not need to fit in GPU memory at the same time.
 
-Report Structure and Contents
-You are free to decide on the structure and contents of your paper, but we would expect to see sections or subsections dealing with the following topics.
- * Abstract. A short 100-200 words summary of your work.
- * Introduction. Which problem are you trying to solve / which research question(s) are you trying to answer and why? Brief overview of your approach and key results.
- * Related work. Discuss work by others who have tackled the same or similar problems or who have used similar methods and describe how your own work builds on this related work and what makes it different.
- * Data/resources. Which dataset did you use? If you used existing dataset(s), mention the source. If you created your own dataset (e.g., for evaluation), describe how you did this. Describe the properties of the dataset. What kind of documents does it consist of? How many documents does it contain? With which information has it been labelled (and how / by whom)? Etc. Also describe if you have done any preprocessing of the dataset.
- * Method. Describe which method you used to answer your question/solve the problem. This is the section where you describe the implementation of your system. What design decisions did you make and why? What baselines are you using to show that your system works over established methods in the field? Refer to literature where relevant.
+## Recommended: Google Colab
 
- * Evaluation. Describe your evaluation method/metrics. Discuss significance testing as appropriate.
+The complete final pipeline is tested for a Colab L4 GPU with a High-RAM
+runtime. Open the notebook using the badge above, select an L4 GPU, edit the
+`NAMES` list, and run all cells. Google Drive output is enabled by default so a
+disconnected runtime can resume from completed stages.
 
+The first run downloads the model weights and takes substantially longer than
+subsequent runs. If memory is tight, the notebook exposes Qwen 4-bit, FLUX
+8-bit, and FLUX CPU-offload options.
+
+## Command-line use
+
+Colab already provides a CUDA-enabled PyTorch installation. Install the pinned
+project environment with:
+
+```bash
+pip install -r requirements-colab.txt
+```
+
+Run two people end to end:
+
+```bash
+python main.py \
+  --names "Marie Curie" "Albert Einstein" \
+  --output-dir output/final_run \
+  --seed 42
+```
+
+Use a UTF-8 file with one name per line for larger runs:
+
+```bash
+python main.py --names-file people.txt --output-dir output/final_run
+```
+
+Existing source, summary, image, and page files are reused automatically. Pass
+`--force` only when they should be regenerated. Run `python main.py --help` for
+quantization, offload, image-size, and stage-skipping options.
+
+## Outputs
+
+Each run directory contains:
+
+```text
+sources/                 Wikipedia records and downloaded portraits
+summaries/               generated biographies and supporting source sentences
+generated_images/        FLUX coloring-page images
+generation_metadata/     prompts, seeds, latency, dimensions, and peak VRAM
+pages/                    one PDF per person
+coloring_book.pdf         combined book
+manifest.json             runtime, configuration, file paths, and failures
+```
+
+The exact Wikipedia revision and the portrait's Wikimedia license, artist, and
+credit are retained in every source record. Generated pages are labelled as
+AI-generated and include a source link. Publication outside the research
+prototype still requires a manual license and factual review.
+
+## Reproducibility
+
+- Dependency versions and the exact Qwen/FLUX Hugging Face revisions are pinned.
+- The default seed is `42`; person `n` receives seed `42 + n`.
+- Failed samples are recorded rather than silently removed.
+- Intermediate results are written atomically and form resumable checkpoints.
+- `manifest.json` records the GPU, PyTorch version, model IDs, run configuration,
+  source revisions, and output paths.
+
+For a clean rerun, use a new output directory. For the final evaluation, freeze
+the subject list and configuration before generating outputs; do not select the
+best result from multiple seeds.
+
+## Repository map
+
+- `main.py` — complete staged pipeline and CLI.
+- `Fetcher.py` — Wikipedia text, portrait, revision, and license retrieval.
+- `Summarizer.py` — grounded Qwen3.5 biography generation.
+- `GeneratorFlux2KleinL4Colab.py` — final FLUX image editor.
+- `Concatenator.py` — individual and multi-page A4 PDF rendering.
+- `Generator.py` — SD1.5 + ControlNet evaluation baseline.
+- `colab/AIColoringBook.ipynb` — final Colab entry point.
+- `tests/` — model-free control-flow and PDF smoke tests.
+
+## Tests
+
+The default tests do not download or load either large model:
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+An actual end-to-end GPU run is intentionally performed in Colab because image
+generation is hardware-dependent.
+
+## Known limitations
+
+- FLUX can simplify or alter identity-relevant facial and clothing details.
+- Supporting sentence IDs make the biography auditable but do not guarantee
+  factual correctness; final pages require human verification.
+- Wikipedia lead images have heterogeneous quality and licenses.
+- The final system is designed for historical figures with a clear lead portrait.
+- A Colab GPU and network access are required for the complete uncached run.
+
+## Models and licenses
+
+- [Qwen3.5-4B](https://huggingface.co/Qwen/Qwen3.5-4B) — Apache 2.0.
+- [FLUX.2 klein 4B](https://huggingface.co/black-forest-labs/FLUX.2-klein-4B) — Apache 2.0.
+- Wikipedia text and Wikimedia images retain their own attribution and license
+  requirements; inspect the saved metadata before redistribution.

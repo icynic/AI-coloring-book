@@ -1,13 +1,8 @@
-wikipedia-api
-requests
-# You may need to install torch with CUDA support manually
-torch
-transformers>=5.5.0
-numpy
-Pillow
-diffusers
-controlnet-aux
+# Final pipeline
+-r requirements-colab.txt
 
-accelerate
-peft
-opencv-python
+# SD1.5/ControlNet evaluation baseline
+controlnet-aux==0.0.10
+peft==0.18.1
+opencv-python==4.13.0.92
+numpy>=2.0,<3

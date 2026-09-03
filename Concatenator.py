@@ -1,107 +1,137 @@
-from reportlab.pdfgen import canvas
+"""Render individual coloring-book pages and a combined A4 PDF book."""
+
+from __future__ import annotations
+
+from pathlib import Path
+import textwrap
+
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-import textwrap
+from reportlab.pdfgen import canvas
+
 
 class Concatenator:
     def __init__(self):
-        # ReportLab doesn't require pre-loading standard fonts like Helvetica
-        pass
-
-    def create_page(self, image_path, text, output_path, title=""):
-        """
-        Combines the generated coloring image and summary text into a single A4 PDF.
-        
-        :param image_path: Path to the generated coloring page image.
-        :param text: The summary text to include.
-        :param output_path: Path to save the final PDF document.
-        :param title: Optional title (e.g., the person's name) to put at the top.
-        """
-        # Ensure the output is a .pdf
-        if not output_path.lower().endswith(".pdf"):
-            output_path = output_path.rsplit(".", 1)[0] + ".pdf"
-
-        c = canvas.Canvas(output_path, pagesize=A4)
-        page_width, page_height = A4
-        
-        margin = 50
-        
-        # Register a unicode-compatible font like Arial
+        self.title_font = "Helvetica-Bold"
+        self.text_font = "Helvetica"
         try:
-            pdfmetrics.registerFont(TTFont('Arial', 'arial.ttf'))
-            pdfmetrics.registerFont(TTFont('Arial-Bold', 'arialbd.ttf'))
-            title_font = 'Arial-Bold'
-            text_font = 'Arial'
+            pdfmetrics.registerFont(TTFont("Arial", "arial.ttf"))
+            pdfmetrics.registerFont(TTFont("Arial-Bold", "arialbd.ttf"))
+            self.title_font = "Arial-Bold"
+            self.text_font = "Arial"
         except Exception:
-            # Fallback to standard Helvetica if Arial isn't found
-            title_font = 'Helvetica-Bold'
-            text_font = 'Helvetica'
-        
-        # Draw Title
+            # Helvetica is available in ReportLab and works in a fresh Colab.
+            pass
+
+    @staticmethod
+    def _ensure_pdf_path(output_path):
+        path = Path(output_path)
+        if path.suffix.lower() != ".pdf":
+            path = path.with_suffix(".pdf")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        return path
+
+    def _draw_page(self, document, page):
+        page_width, page_height = A4
+        margin = 50
+        title = page.get("title", "")
+
         if title:
-            c.setFont(title_font, 24)
-            title_width = c.stringWidth(title, title_font, 24)
-            title_x = (page_width - title_width) / 2
-            c.drawString(title_x, page_height - margin - 20, title)
-            
-        # Draw Image
+            document.setFont(self.title_font, 24)
+            document.drawCentredString(page_width / 2, page_height - margin - 20, title)
+
+        image = ImageReader(page["image_path"])
+        image_width, image_height = image.getSize()
+        max_image_width = page_width - (2 * margin)
+        max_image_height = page_height * 0.55
+        aspect = image_height / float(image_width)
+        draw_width = min(max_image_width, max_image_height / aspect)
+        draw_height = draw_width * aspect
+        image_x = (page_width - draw_width) / 2
+        image_y = page_height - margin - 60 - draw_height
+        document.drawImage(
+            image,
+            image_x,
+            image_y,
+            width=draw_width,
+            height=draw_height,
+            preserveAspectRatio=True,
+            mask="auto",
+        )
+
+        document.setFont(self.text_font, 12)
+        text_y = image_y - 34
+        for line in textwrap.wrap(page.get("text", ""), width=86):
+            if text_y < 78:
+                break
+            document.drawString(margin, text_y, line)
+            text_y -= 16
+
+        attribution_parts = []
+        if page.get("source_url"):
+            attribution_parts.append("Biography source: English Wikipedia")
+        if page.get("attribution"):
+            attribution_parts.append(f"Portrait: {page['attribution']}")
+        attribution_parts.append("Line art generated with AI; verify before publication.")
+
+        document.setFont(self.text_font, 7)
+        footer_y = 42
+        for line in textwrap.wrap(" | ".join(attribution_parts), width=130)[:3]:
+            document.drawString(margin, footer_y, line)
+            footer_y -= 9
+
+        if page.get("source_url"):
+            document.linkURL(
+                page["source_url"],
+                (margin, 36, page_width - margin, 60),
+                relative=0,
+            )
+
+    def create_page(
+        self,
+        image_path,
+        text,
+        output_path,
+        title="",
+        attribution=None,
+        source_url=None,
+    ):
+        page = {
+            "image_path": image_path,
+            "text": text,
+            "title": title,
+            "attribution": attribution,
+            "source_url": source_url,
+        }
+        return self.create_book([page], output_path)
+
+    def create_book(self, pages, output_path):
+        """Create one multi-page PDF from page dictionaries."""
+        output_path = self._ensure_pdf_path(output_path)
+        document = canvas.Canvas(str(output_path), pagesize=A4)
+        document.setTitle(pages[0].get("title", "AI Coloring Book") if len(pages) == 1 else "AI Coloring Book")
+        document.setAuthor("AI Coloring Book research prototype")
+        document.setSubject("AI-generated biographical coloring-book pages")
         try:
-            img = ImageReader(image_path)
-            img_width, img_height = img.getSize()
-            
-            # Restrict image to fit within margins and take up about 55% of the page height
-            max_img_width = page_width - (2 * margin)
-            max_img_height = page_height * 0.55
-            
-            aspect = img_height / float(img_width)
-            draw_width = min(max_img_width, max_img_height / aspect)
-            draw_height = draw_width * aspect
-            
-            img_x = (page_width - draw_width) / 2
-            img_y = page_height - margin - 60 - draw_height
-            
-            c.drawImage(img, img_x, img_y, width=draw_width, height=draw_height)
-        except Exception as e:
-            print(f"Error loading image {image_path}: {e}")
+            for index, page in enumerate(pages):
+                self._draw_page(document, page)
+                if index < len(pages) - 1:
+                    document.showPage()
+            document.save()
+            return True
+        except Exception as exc:
+            print(f"Error creating PDF {output_path}: {exc}")
             return False
 
-        # Draw Summary Text
-        c.setFont(text_font, 12)
-        text_y = img_y - 40 # Start text a bit below the image
-        
-        # Wrap text. For Arial/Helvetica 12, roughly 85 characters fit nicely across A4 with 50pt margins
-        wrapped_text = textwrap.wrap(text, width=85)
-        
-        for line in wrapped_text:
-            if text_y < margin:
-                break # Prevent drawing off the bottom of the page
-            c.drawString(margin, text_y, line)
-            text_y -= 16 # Line height increment
-
-        c.save()
-        return True
 
 if __name__ == "__main__":
-    import os
-    # Example values for testing
     test_image = "images/Marie_Curie_output.png"
-    test_text = "Marie Curie was a Polish and French chemist and physicist who shared the 1903 Nobel Prize with her husband Pierre for discovering radioactivity. She was the first woman to win a Nobel Prize and the first to win it twice, discovering radium and polonium. She was the first woman to become a professor at the University of Paris and named the element polonium after her native country. While studying in Paris, she taught her daughters the Polish language and named the element polonium after Poland. She passed away in France in 1934 at 66, and was the first woman to be entombed on her own merits in the Paris Pantheon."
-    test_output = "output/test_concatenator_output.pdf"
-    test_title = "Marie Curie"
-
-    os.makedirs("output", exist_ok=True)
-    
-    if os.path.exists(test_image):
-        print(f"Testing Concatenator with {test_image}...")
-        concatenator = Concatenator()
-        success = concatenator.create_page(test_image, test_text, test_output, test_title)
-        
-        if success:
-            print(f"Test successful! PDF saved to {test_output}")
-        else:
-            print("Test failed during PDF creation.")
-    else:
-        print(f"Test image not found at '{test_image}'.")
-        print("Please run main.py first to generate an image or update the 'test_image' path in this block.")
+    if Path(test_image).exists():
+        Concatenator().create_page(
+            image_path=test_image,
+            text="Marie Curie was a pioneering physicist and chemist who studied radioactivity.",
+            output_path="output/test_concatenator_output.pdf",
+            title="Marie Curie",
+        )

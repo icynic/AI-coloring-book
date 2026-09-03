@@ -1,50 +1,206 @@
-from transformers import pipeline
+"""Grounded biography summarization with Qwen3.5."""
+
+from __future__ import annotations
+
+import gc
+import json
+import re
+import time
+
 import torch
+from transformers import BitsAndBytesConfig, pipeline
+
+
+DEFAULT_MODEL = "Qwen/Qwen3.5-4B"
+DEFAULT_MODEL_REVISION = "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a"
 
 
 class Summarizer:
-    def __init__(self, model_name="Qwen/Qwen3.5-0.8B", device_map="auto"):
-        self.pipe = pipeline(
-            "text-generation",
-            model=model_name,
-            dtype=torch.float16,
-            device_map=device_map,
-        )
+    def __init__(
+        self,
+        model_name=DEFAULT_MODEL,
+        device_map="auto",
+        quantization="none",
+        dtype=None,
+        revision=DEFAULT_MODEL_REVISION,
+    ):
+        self.model_name = model_name
+        self.revision = revision
+        self.quantization = quantization
+        if dtype is None:
+            if torch.cuda.is_available() and torch.cuda.is_bf16_supported():
+                dtype = torch.bfloat16
+            elif torch.cuda.is_available():
+                dtype = torch.float16
+            else:
+                dtype = torch.float32
 
-    def summarize(self, text, max_new_tokens=512):
+        pipe_kwargs = {
+            "task": "image-text-to-text",
+            "model": model_name,
+            "dtype": dtype,
+            "device_map": device_map,
+        }
+        if revision:
+            pipe_kwargs["revision"] = revision
+        quantization_config = self._quantization_config(quantization)
+        if quantization_config is not None:
+            pipe_kwargs["model_kwargs"] = {"quantization_config": quantization_config}
+
+        print(f"Loading summarizer {model_name} ({quantization})...")
+        load_started_at = time.perf_counter()
+        self.pipe = pipeline(**pipe_kwargs)
+        self.model_load_seconds = round(time.perf_counter() - load_started_at, 3)
+
+    @staticmethod
+    def _quantization_config(quantization):
+        if quantization in (None, "none"):
+            return None
+        if quantization == "8bit":
+            return BitsAndBytesConfig(load_in_8bit=True)
+        if quantization == "4bit":
+            return BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_quant_type="nf4",
+                bnb_4bit_compute_dtype=torch.bfloat16
+                if torch.cuda.is_available() and torch.cuda.is_bf16_supported()
+                else torch.float16,
+            )
+        raise ValueError("quantization must be one of: none, 8bit, 4bit")
+
+    @staticmethod
+    def split_source_sentences(text):
+        cleaned = re.sub(r"\s+", " ", text or "").strip()
+        if not cleaned:
+            return []
+        # A lightweight splitter keeps this project self-contained. The complete
+        # source text is retained, so sentence IDs can always be audited manually.
+        return [
+            sentence.strip()
+            for sentence in re.split(r"(?<=[.!?])\s+(?=[A-Z0-9\"'])", cleaned)
+            if sentence.strip()
+        ]
+
+    @staticmethod
+    def _extract_text(output):
+        generated = output[0].get("generated_text", output[0])
+        if isinstance(generated, str):
+            return generated
+        if isinstance(generated, list) and generated:
+            content = generated[-1].get("content", generated[-1])
+            if isinstance(content, str):
+                return content
+            if isinstance(content, list):
+                return "".join(
+                    part.get("text", "") if isinstance(part, dict) else str(part)
+                    for part in content
+                )
+        return str(generated)
+
+    @staticmethod
+    def _parse_json_response(raw_text):
+        start = raw_text.find("{")
+        end = raw_text.rfind("}")
+        if start < 0 or end <= start:
+            raise ValueError("The model response did not contain a JSON object.")
+        parsed = json.loads(raw_text[start : end + 1])
+        summary = str(parsed.get("summary", "")).strip()
+        if not summary:
+            raise ValueError("The model response did not contain a summary.")
+        evidence = parsed.get("supporting_source_sentence_ids", [])
+        evidence = sorted({int(item) for item in evidence if str(item).isdigit()})
+        return summary, evidence
+
+    def summarize_with_evidence(
+        self,
+        text,
+        target_age="10-14",
+        min_words=80,
+        max_words=110,
+        max_new_tokens=384,
+    ):
+        sentences = self.split_source_sentences(text)
+        if not sentences:
+            raise ValueError("Cannot summarize empty source text.")
+
+        numbered_source = "\n".join(
+            f"[{index}] {sentence}" for index, sentence in enumerate(sentences, start=1)
+        )
         messages = [
             {
                 "role": "system",
                 "content": [
                     {
                         "type": "text",
-                        "text": "Summarize the text from wikipedia about historical figures into a few sentences optimized for coloring book pages for children.",
-                    },
+                        "text": (
+                            "You create concise educational biographies for children's coloring books. "
+                            "Use only facts explicitly supported by the supplied source. Do not guess, "
+                            "infer, embellish, or add outside knowledge. Return only valid JSON."
+                        ),
+                    }
                 ],
             },
             {
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": text},
+                    {
+                        "type": "text",
+                        "text": (
+                            f"Write a {min_words}-{max_words} word English biography for readers aged "
+                            f"{target_age}. Use 4-6 clear sentences. Prefer important achievements and "
+                            "avoid distressing or unnecessary detail. Return exactly this schema:\n"
+                            '{"summary": "...", "supporting_source_sentence_ids": [1, 2]}\n\n'
+                            "Every factual statement in the summary must be supported by at least one "
+                            "listed source sentence.\n\nSOURCE:\n"
+                            f"{numbered_source}"
+                        ),
+                    }
                 ],
             },
         ]
 
-        output = self.pipe(messages, max_new_tokens=max_new_tokens)
-        return output[0]["generated_text"][-1]["content"]
+        output = self.pipe(
+            text=messages,
+            max_new_tokens=max_new_tokens,
+            do_sample=False,
+        )
+        raw_text = self._extract_text(output)
+        summary, evidence = self._parse_json_response(raw_text)
+        valid_evidence = [index for index in evidence if 1 <= index <= len(sentences)]
+        return {
+            "summary": summary,
+            "supporting_source_sentence_ids": valid_evidence,
+            "supporting_source_sentences": [sentences[index - 1] for index in valid_evidence],
+            "word_count": len(summary.split()),
+            "target_age": target_age,
+            "requested_word_range": [min_words, max_words],
+            "model_id": self.model_name,
+            "model_revision": self.revision,
+            "quantization": self.quantization,
+            "model_load_seconds": self.model_load_seconds,
+            "raw_model_response": raw_text,
+        }
+
+    def summarize(self, text, max_new_tokens=384):
+        """Backward-compatible helper returning only the biography text."""
+        return self.summarize_with_evidence(text, max_new_tokens=max_new_tokens)["summary"]
+
+    def cleanup(self):
+        if hasattr(self, "pipe"):
+            del self.pipe
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
 
 
 if __name__ == "__main__":
-    text_to_summarize = """
-    Marie Curie
-    Maria Salomea Skłodowska Curie (Polish: [ˈmarja salɔˈmɛa skwɔˈdɔfska kiˈri] ; née Skłodowska; 7 November 1867 – 4 July 1934), better known as Marie Curie ( KURE-ee; French: [maʁi kyʁi] ), was a Polish and naturalised-French physicist and chemist. She shared the 1903 Nobel Prize in Physics with her husband Pierre Curie "for their joint researches on the  radioactivity phenomena discovered by Professor Henri Becquerel". She won the 1911 Nobel Prize in Chemistry "[for] the discovery of the  elements radium and polonium, by the isolation of radium and the study of the nature and compounds of this remarkable element".
-    She was the first woman to win a Nobel Prize, the first person to win a Nobel Prize twice, and the only person to win a Nobel Prize in two different scientific fields. Marie and Pierre were the first married couple to win the Nobel Prize and launching the Curie family legacy of five Nobel Prizes. She was, in 1906, the first woman to become a professor at the University of Paris.
-    She was born in Warsaw, in what was then the Kingdom of Poland, part of the Russian Empire. She studied at Warsaw's clandestine Flying University and began her practical scientific training in Warsaw. In 1891, aged 24, she followed her elder sister Bronisława to study in Paris, where she earned her higher degrees and conducted her subsequent scientific work. In 1895, she married Pierre Curie, with whom she conducted pioneering research on radioactivity—a term she coined. In 1906, Pierre died in a Paris street accident.
-    Under her direction, the world's first studies were conducted into the treatment of neoplasms by the use of radioactive isotopes. She founded the Curie Institute in Paris in 1920, and the Curie Institute in Warsaw in 1932; both remain major medical research centres. During World War I, she developed mobile radiography units to provide X-ray services to field hospitals.
-    While a French citizen, Marie Skłodowska Curie, who used both surnames, never lost her sense of Polish identity. She taught her daughters the Polish language and took them on visits to Poland. She named the first chemical element she and Pierre discovered polonium, after her native country.
-    Marie Curie died in 1934, aged 66, at the Sancellemoz sanatorium in Passy (Haute-Savoie), France, of aplastic anaemia likely from exposure to radiation in the course of her scientific research and in the course of her radiological work at field hospitals during World War I. In addition to her Nobel Prizes, she received numerous other honours and tributes; in 1995 she became the first woman to be entombed on her own merits in the Paris Panthéon, and Poland declared 2011 the Year of Marie Curie during the International Year of Chemistry. She is the subject of numerous biographies, including Madame Curie by her daughter Ève. The synthetic element curium is named in her honour.
-    """
-
+    example = (
+        "Marie Curie was a Polish and naturalised-French physicist and chemist. "
+        "She conducted pioneering research on radioactivity. She won Nobel Prizes "
+        "in Physics and Chemistry and discovered polonium and radium."
+    )
     summarizer = Summarizer()
-    summary = summarizer.summarize(text_to_summarize)
-    print(summary)
+    try:
+        print(json.dumps(summarizer.summarize_with_evidence(example), indent=2))
+    finally:
+        summarizer.cleanup()

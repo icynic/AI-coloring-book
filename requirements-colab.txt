@@ -1,0 +1,13 @@
+# Tested final-prototype environment. Colab already supplies a CUDA-enabled torch.
+git+https://github.com/huggingface/diffusers.git@f3d42be118f9af7ed9697b686fba09a8bdcd71d1
+transformers==5.5.0
+accelerate==1.13.0
+safetensors==0.8.0rc1
+requests==2.33.1
+Pillow==12.2.0
+reportlab==4.5.0
+protobuf==7.35.0
+sentencepiece>=0.2.0
+
+# Optional; required only for --qwen-quantization or --flux-quantization.
+bitsandbytes>=0.48.0
