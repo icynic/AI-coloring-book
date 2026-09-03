@@ -7,6 +7,14 @@ Qwen 4-bit, FLUX 8-bit, a 640px maximum image side, a 256-token prompt sequence,
 four FLUX steps, FP16 compute, and no CPU offload. An L4 is faster but is not
 required. The tested notebook is `colab/AIColoringBook.ipynb`.
 
+If the first dependency installation reports a Pillow/PIL import mismatch,
+choose **Runtime > Restart session** and run all cells again. A normal restart
+keeps the installed packages and Drive checkpoints. Do not factory-reset the
+runtime. The requirements accept Colab's compatible Pillow version instead of
+forcing an in-place replacement. They also retain Colab-compatible
+`requests==2.32.4` and `protobuf==5.29.5`; do not upgrade either package in a
+later notebook cell.
+
 Before the experiment run, verify the GPU name with `nvidia-smi`. Record the
 Colab subscription tier and approximate compute-unit cost separately; Colab
 hardware availability and pricing are not controlled by this project.

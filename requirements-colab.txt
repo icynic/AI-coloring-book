@@ -3,10 +3,14 @@ git+https://github.com/huggingface/diffusers.git@f3d42be118f9af7ed9697b686fba09a
 transformers==5.5.0
 accelerate==1.13.0
 safetensors==0.8.0rc1
-requests==2.33.1
-Pillow==12.2.0
+# Match the version required by the hosted Colab runtime.
+requests==2.32.4
+# Keep Colab's already-loaded Pillow when it is compatible. Replacing Pillow in
+# a live kernel can mix old and new PIL modules until the runtime is restarted.
+Pillow>=10.0,<13
 reportlab==4.5.0
-protobuf==7.35.0
+# Colab's grpcio-status, YDF, and Google AI packages require protobuf<6.
+protobuf==5.29.5
 sentencepiece>=0.2.0
 
 # Optional; required only for --qwen-quantization or --flux-quantization.

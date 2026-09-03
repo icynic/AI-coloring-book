@@ -35,6 +35,10 @@ The first run downloads the model weights and takes substantially longer than
 subsequent runs. CPU offload is retained as a last-resort fallback because free
 Colab system RAM and GPU-to-CPU transfer speed may be limiting.
 
+If Colab reports a Pillow/PIL import mismatch immediately after dependency
+installation, choose **Runtime > Restart session** and run all cells again. The
+downloaded source records and Google Drive checkpoints remain available.
+
 ## Command-line use
 
 Colab already provides a CUDA-enabled PyTorch installation. Install the pinned
