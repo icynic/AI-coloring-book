@@ -2,8 +2,10 @@
 
 ## Runtime
 
-Use a Google Colab L4 GPU and, when available, the High-RAM system-memory
-option. The tested notebook is `colab/AIColoringBook.ipynb`.
+The notebook defaults to the free NVIDIA T4 preset. `T4_SAFE_MODE=True` applies
+Qwen 4-bit, FLUX 8-bit, a 640px maximum image side, a 256-token prompt sequence,
+four FLUX steps, FP16 compute, and no CPU offload. An L4 is faster but is not
+required. The tested notebook is `colab/AIColoringBook.ipynb`.
 
 Before the experiment run, verify the GPU name with `nvidia-smi`. Record the
 Colab subscription tier and approximate compute-unit cost separately; Colab
@@ -24,17 +26,17 @@ stage outputs and should not be used during an interrupted evaluation run.
 
 ## Memory fallbacks
 
-Use the normal BF16 configuration first. If FLUX runs out of memory, try these
+Use `T4_SAFE_MODE=True` first. If FLUX still runs out of memory, try these
 changes in order:
 
-1. Set `FLUX_OFFLOAD = True`.
-2. Set `FLUX_QUANTIZATION = '8bit'`.
-3. Reduce `--max-side` from 768 to 640.
-4. Enable `--vae-tiling` for larger images.
+1. Disable the preset and retain Qwen 4-bit and FLUX 8-bit while reducing
+   `--max-side` from 640 to 512.
+2. Enable `--vae-tiling`.
+3. Change FLUX from 8-bit to 4-bit.
+4. Enable CPU offload only as a final fallback.
 
-For Qwen, use `QWEN_QUANTIZATION = '4bit'` if necessary. Do not change memory
-settings halfway through a formal evaluation run; use a new output directory
-and regenerate every sample with the same configuration.
+Do not change memory settings halfway through a formal evaluation run; use a
+new output directory and regenerate every sample with the same configuration.
 
 ## Clean-room verification
 
@@ -56,4 +58,3 @@ Before release:
 - Do not choose the best-looking seed for the main comparison.
 - Copy the final manifest and evaluation CSV into the report artifact.
 - Check every portrait's recorded license before redistributing sample books.
-

@@ -1,15 +1,18 @@
 """
-Colab L4-friendly FLUX.2 [klein] coloring page generator.
+Colab T4/L4-friendly FLUX.2 [klein] coloring page generator.
 
 Colab setup cell:
     !pip install -q --upgrade git+https://github.com/huggingface/diffusers.git transformers accelerate safetensors sentencepiece protobuf pillow bitsandbytes
 
 Recommended Colab hardware:
-    - GPU: NVIDIA L4, about 22.5GB VRAM
-    - System RAM: high-RAM runtime, about 53GB
+    - Free tier: NVIDIA T4 16GB, 8-bit quantization, max side 640
+    - Faster tier: NVIDIA L4, about 22.5GB VRAM
 
 Example:
     python GeneratorFlux2KleinL4Colab.py --input images/Marie_Curie.jpg
+
+T4 example:
+    python GeneratorFlux2KleinL4Colab.py --input images/Marie_Curie.jpg --quantization 8bit --max-side 640
 
 If you still hit OOM:
     python GeneratorFlux2KleinL4Colab.py --input images/Marie_Curie.jpg --offload

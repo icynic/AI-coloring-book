@@ -373,6 +373,7 @@ def run_pipeline(args):
             "seed": args.seed,
             "target_age": args.target_age,
             "summary_word_range": [args.summary_min_words, args.summary_max_words],
+            "t4_safe_mode": args.t4_safe_mode,
         },
         "book_path": str(book_path) if book_path else None,
         "items": [manifest_record(record) for record in records],
@@ -414,7 +415,24 @@ def parse_args(argv=None):
     parser.add_argument("--skip-image-generation", action="store_true")
     parser.add_argument("--skip-pdf", action="store_true")
     parser.add_argument("--allow-cpu", action="store_true", help="Allow impractically slow FLUX CPU inference.")
-    return parser.parse_args(argv)
+    parser.add_argument(
+        "--t4-safe-mode",
+        action="store_true",
+        help=(
+            "Apply the free-Colab T4 preset: Qwen 4-bit, FLUX 8-bit, "
+            "640px maximum side, 256 prompt tokens, and no CPU offload."
+        ),
+    )
+    args = parser.parse_args(argv)
+    if args.t4_safe_mode:
+        args.qwen_quantization = "4bit"
+        args.flux_quantization = "8bit"
+        args.flux_offload = False
+        args.max_side = 640
+        args.max_sequence_length = 256
+        args.flux_steps = 4
+        args.guidance_scale = 1.0
+    return args
 
 
 def main(argv=None):

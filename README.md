@@ -24,14 +24,16 @@ not need to fit in GPU memory at the same time.
 
 ## Recommended: Google Colab
 
-The complete final pipeline is tested for a Colab L4 GPU with a High-RAM
-runtime. Open the notebook using the badge above, select an L4 GPU, edit the
-`NAMES` list, and run all cells. Google Drive output is enabled by default so a
-disconnected runtime can resume from completed stages.
+The notebook defaults to `T4_SAFE_MODE`, designed for a free Colab T4 with 16GB
+VRAM. It uses Qwen 4-bit, FLUX 8-bit, a 640px maximum image side, and a 256-token
+prompt sequence. An L4 can use the unquantized configuration by setting
+`T4_SAFE_MODE = False`. Edit the `NAMES` list and run all cells. Google Drive
+output is enabled by default so a disconnected runtime can resume from
+completed stages.
 
 The first run downloads the model weights and takes substantially longer than
-subsequent runs. If memory is tight, the notebook exposes Qwen 4-bit, FLUX
-8-bit, and FLUX CPU-offload options.
+subsequent runs. CPU offload is retained as a last-resort fallback because free
+Colab system RAM and GPU-to-CPU transfer speed may be limiting.
 
 ## Command-line use
 
@@ -48,6 +50,7 @@ Run two people end to end:
 python main.py \
   --names "Marie Curie" "Albert Einstein" \
   --output-dir output/final_run \
+  --t4-safe-mode \
   --seed 42
 ```
 

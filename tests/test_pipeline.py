@@ -23,6 +23,25 @@ class PipelineHelpersTest(unittest.TestCase):
         self.assertEqual(summary, "A short biography.")
         self.assertEqual(evidence, [1, 2])
 
+    def test_t4_safe_mode_applies_complete_preset(self):
+        args = parse_args(
+            [
+                "--t4-safe-mode",
+                "--qwen-quantization",
+                "none",
+                "--flux-quantization",
+                "none",
+                "--max-side",
+                "1024",
+                "--flux-offload",
+            ]
+        )
+        self.assertEqual(args.qwen_quantization, "4bit")
+        self.assertEqual(args.flux_quantization, "8bit")
+        self.assertEqual(args.max_side, 640)
+        self.assertEqual(args.max_sequence_length, 256)
+        self.assertFalse(args.flux_offload)
+
     def test_cached_pipeline_builds_book_without_loading_models(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             run_dir = Path(temporary_directory)
