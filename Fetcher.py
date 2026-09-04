@@ -7,9 +7,12 @@ import hashlib
 import html
 import os
 import re
+import time
 import urllib.parse
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 
 WIKIMEDIA_API_URL = "https://en.wikipedia.org/w/api.php"
@@ -18,6 +21,36 @@ USER_AGENT = os.environ.get(
     "AIColoringBook/1.0 (academic research project; contact via project repository)",
 )
 REQUEST_TIMEOUT = 30
+REQUEST_DELAY_SECONDS = float(os.environ.get("AICOLORINGBOOK_REQUEST_DELAY", "0.75"))
+_last_request_started = 0.0
+
+
+def _build_session() -> requests.Session:
+    session = requests.Session()
+    session.headers.update({"User-Agent": USER_AGENT})
+    retry = Retry(
+        total=5,
+        connect=3,
+        read=3,
+        status=5,
+        backoff_factor=2,
+        status_forcelist=(429, 500, 502, 503, 504),
+        allowed_methods=frozenset({"GET"}),
+        respect_retry_after_header=True,
+    )
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount("https://", adapter)
+    return session
+
+
+def _get(session: requests.Session, url: str, **kwargs) -> requests.Response:
+    """Issue a rate-limited GET; the session adapter handles transient retries."""
+    global _last_request_started
+    wait_seconds = REQUEST_DELAY_SECONDS - (time.monotonic() - _last_request_started)
+    if wait_seconds > 0:
+        time.sleep(wait_seconds)
+    _last_request_started = time.monotonic()
+    return session.get(url, **kwargs)
 
 
 def _empty_result(title: str) -> dict:
@@ -59,7 +92,8 @@ def _extmetadata_value(metadata: dict, key: str) -> str | None:
 
 def _fetch_page_metadata(session: requests.Session, title: str) -> dict:
     """Return the exact Wikipedia revision and Wikimedia image attribution."""
-    response = session.get(
+    response = _get(
+        session,
         WIKIMEDIA_API_URL,
         params={
             "action": "query",
@@ -99,7 +133,8 @@ def _fetch_page_metadata(session: requests.Session, title: str) -> dict:
     if not image_title:
         return result
 
-    image_response = session.get(
+    image_response = _get(
+        session,
         WIKIMEDIA_API_URL,
         params={
             "action": "query",
@@ -138,13 +173,13 @@ def get_person_info(query, fuzzy_search=True, save_folder=None):
     Metadata is returned with every sample so experiments can be traced to an
     exact Wikipedia revision and the source image can be attributed correctly.
     """
-    session = requests.Session()
-    session.headers.update({"User-Agent": USER_AGENT})
+    session = _build_session()
     title = query
 
     try:
         if fuzzy_search:
-            response = session.get(
+            response = _get(
+                session,
                 WIKIMEDIA_API_URL,
                 params={
                     "action": "opensearch",
@@ -204,10 +239,8 @@ def _download_image(image_url, title, save_folder=None, session=None):
     os.makedirs(os.path.dirname(filepath) or ".", exist_ok=True)
 
     try:
-        client = session or requests.Session()
-        if session is None:
-            client.headers.update({"User-Agent": USER_AGENT})
-        response = client.get(image_url, timeout=REQUEST_TIMEOUT)
+        client = session or _build_session()
+        response = _get(client, image_url, timeout=REQUEST_TIMEOUT)
         response.raise_for_status()
         with open(filepath, "wb") as file:
             file.write(response.content)

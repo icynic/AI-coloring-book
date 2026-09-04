@@ -122,6 +122,15 @@ python -m unittest discover -s tests -v
 An actual end-to-end GPU run is intentionally performed in Colab because image
 generation is hardware-dependent.
 
+## Evaluation
+
+The frozen evaluation set contains eight historical figures with documented
+connections to Philipps-Universität Marburg. The Colab notebook loads this set
+from `evaluation/subjects.txt` by default. The `evaluation/` directory also
+contains a local SD1.5 + ControlNet baseline runner, reproducible A/B
+randomization, human-rating templates, and exact paired statistical analysis.
+See `evaluation/README.md` for the complete protocol.
+
 ## Known limitations
 
 - FLUX can simplify or alter identity-relevant facial and clothing details.

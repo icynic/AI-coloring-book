@@ -7,7 +7,8 @@ Qwen 4-bit, FLUX 8-bit, a 640px maximum image side, a 256-token prompt sequence,
 four FLUX steps, FP16 compute, and no CPU offload. An L4 is faster but is not
 required. The tested notebook is `colab/AIColoringBook.ipynb`.
 
-If the first dependency installation reports a Pillow/PIL import mismatch,
+If the dependency check cannot import Pillow's core `Image` and `ImageOps`
+modules,
 choose **Runtime > Restart session** and run all cells again. A normal restart
 keeps the installed packages and Drive checkpoints. Do not factory-reset the
 runtime. The requirements accept Colab's compatible Pillow version instead of
