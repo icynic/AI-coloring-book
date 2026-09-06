@@ -33,6 +33,51 @@ Every completed item is saved before the next item starts. Re-run the same
 command and output directory to resume. `--force` intentionally overwrites all
 stage outputs and should not be used during an interrupted evaluation run.
 
+## Repair a book whose summaries contain `...`
+
+After syncing the updated repository, keep the existing run in Drive and set
+`REPAIR_SUMMARIES_ONLY = True` in the notebook configuration, then run the
+pipeline cell. Alternatively, from the repository directory in Colab run:
+
+```python
+import subprocess, sys
+subprocess.run([
+    sys.executable, '-u', 'main.py', '--repair-summaries',
+    '--output-dir', '/content/drive/MyDrive/AIColoringBook/evaluation_flux_t4',
+], check=True)
+```
+
+Recovery loads names, source records and Qwen settings from the existing run.
+It never fetches Wikipedia or loads FLUX. Windows/Colab paths in old source
+records do not affect recovery: it resolves saved output images relative to
+the run directory. Only missing or invalid summaries are regenerated. Valid
+biographies must contain 80-110 words (or the range in the saved manifest),
+non-empty integer evidence IDs within the source range, and no placeholder.
+These checks do not establish factual correctness; the human audit is still
+required.
+
+Qwen's thinking mode is disabled explicitly. Generation uses a 1024-token
+budget and at most one validation retry, with 2048 tokens and corrective
+feedback. Failed outputs and their reasons are recorded in `summary_failures/`.
+They are not treated as usable summaries.
+
+All individual PDFs and the combined PDF are rebuilt from validated text.
+Original summaries, PDFs and manifests are copied to `backups/<timestamp>/`
+before replacement. Original image metadata, sources and image-run runtime
+remain unchanged. `repair_manifest.json` records the repair runtime and errors.
+If any summary/image is missing or invalid, no new final PDF is published and
+`manifest.json` has a null `book_path`; old PDFs remain available as old results.
+
+For a model-free, read-only check of the downloaded local run:
+
+```bash
+python main.py --repair-summaries --check-only --output-dir output/evaluation_flux_t4
+```
+
+Recovery needs the project dependencies and a runtime able to load Qwen. It
+does not require FLUX inference. A regular notebook rerun also validates cached
+summaries now, but recovery is preferable when the source downloads are fixed.
+
 ## Memory fallbacks
 
 Use `T4_SAFE_MODE=True` first. If FLUX still runs out of memory, try these

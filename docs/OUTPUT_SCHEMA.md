@@ -17,6 +17,17 @@ text, word count, target age, requested length, Qwen model ID and revision,
 quantization and model-load time,
 raw model response, source revision, and creation time.
 
+New records include `validation_version`, `generation_settings` (thinking
+disabled, deterministic decoding, output-token budget), and
+`generation_attempts` (including any rejected output and validation error).
+Validation checks content type, placeholder text, word length and evidence IDs;
+it does not replace human factual review.
+
+`summary_failures/<person>.json` records exhausted retries. Old evaluation
+artifacts are kept in `backups/<timestamp>/` when replacements are written.
+`repair_manifest.json` records summary-only recovery; `manifest.json` retains
+the original image-run runtime and adds `summary_repairs`.
+
 The evidence is an audit aid, not a correctness guarantee. The final evaluation
 must still verify each atomic claim against the saved source.
 

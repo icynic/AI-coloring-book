@@ -64,9 +64,23 @@ Use a UTF-8 file with one name per line for larger runs:
 python main.py --names-file people.txt --output-dir output/final_run
 ```
 
-Existing source, summary, image, and page files are reused automatically. Pass
-`--force` only when they should be regenerated. Run `python main.py --help` for
-quantization, offload, image-size, and stage-skipping options.
+Existing source and image files and validated summaries are reused automatically.
+PDFs are rebuilt from the current validated text. Pass `--force` only when all
+stages should be regenerated. Run `python main.py --help` for quantization,
+offload, image-size, and stage-skipping options.
+
+To repair an existing book containing placeholder biographies such as `...`,
+sync the updated code and set `REPAIR_SUMMARIES_ONLY = True` in the Colab
+notebook, or run:
+
+```bash
+python main.py --repair-summaries --output-dir output/evaluation_flux_t4
+```
+
+This regenerates invalid summaries and rebuilds PDFs using the saved source
+text and FLUX images; no Wikipedia requests or FLUX inference are performed.
+Replaced artifacts are backed up first. See [the recovery runbook](docs/COLAB.md)
+for the Drive command, validation checks, and read-only inspection.
 
 ## Outputs
 

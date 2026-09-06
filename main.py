@@ -13,12 +13,14 @@ import os
 from pathlib import Path
 import platform
 import re
+import shutil
 import sys
 
 import torch
 
 from Concatenator import Concatenator
 from Fetcher import get_person_info
+from summary_validation import validate_summary
 
 
 DEFAULT_QWEN_MODEL = "Qwen/Qwen3.5-4B"
@@ -94,7 +96,7 @@ def image_attribution(source):
     return "; ".join(parts) if parts else "See source metadata for attribution"
 
 
-def ensure_run_directories(run_dir):
+def ensure_run_directories(run_dir, create=True):
     paths = {
         "run": run_dir,
         "source": run_dir / "sources",
@@ -104,9 +106,35 @@ def ensure_run_directories(run_dir):
         "generation": run_dir / "generation_metadata",
         "pages": run_dir / "pages",
     }
-    for path in paths.values():
-        path.mkdir(parents=True, exist_ok=True)
+    if create:
+        for path in paths.values():
+            path.mkdir(parents=True, exist_ok=True)
     return paths
+
+
+def backup_existing(paths, path):
+    """Keep the original evaluation artifacts before replacing any content."""
+    path = Path(path)
+    if not path.exists():
+        return
+    if "backup" not in paths:
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+        paths["backup"] = paths["run"] / "backups" / stamp
+    destination = paths["backup"] / path.relative_to(paths["run"])
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    if not destination.exists():
+        shutil.copy2(path, destination)
+
+
+def load_valid_summary(record, paths, args):
+    summary_path = paths["summaries"] / f"{record['slug']}.json"
+    summary = read_json(summary_path)
+    validate_summary(summary, record["source"].get("summary"),
+                     args.summary_min_words, args.summary_max_words)
+    revision = summary.get("source_revision_id")
+    if revision is not None and revision != record["source"].get("revision_id"):
+        raise ValueError("Summary refers to a different Wikipedia revision.")
+    return summary
 
 
 def fetch_stage(names, paths, force=False, fuzzy_search=True):
@@ -153,15 +181,23 @@ def fetch_stage(names, paths, force=False, fuzzy_search=True):
 
 
 def summarization_stage(records, paths, args):
-    pending = [
-        record
-        for record in records
-        if record["source"].get("summary")
-        and (args.force or not (paths["summaries"] / f"{record['slug']}.json").exists())
-    ]
-    if args.skip_summarization:
-        print("[summarize] Skipped by command-line option.")
-        pending = []
+    pending = []
+    for record in records:
+        record.pop("summary", None)
+        summary_path = paths["summaries"] / f"{record['slug']}.json"
+        record["summary_path"] = str(summary_path)
+        invalid_reason = None
+        try:
+            record["summary"] = load_valid_summary(record, paths, args)
+        except (OSError, ValueError) as exc:
+            invalid_reason = str(exc)
+            if summary_path.exists():
+                print(f"[summarize] Rejecting cache for {record['query']}: {exc}")
+        if (invalid_reason or args.force) and not args.skip_summarization and record["source"].get("summary"):
+            record.pop("summary", None)
+            pending.append(record)
+        elif invalid_reason:
+            record["errors"].append(f"No valid summary: {invalid_reason}")
 
     summarizer = None
     if pending:
@@ -191,21 +227,23 @@ def summarization_stage(records, paths, args):
                             "created_at": utc_now(),
                         }
                     )
+                    validate_summary(summary, record["source"]["summary"],
+                                     args.summary_min_words, args.summary_max_words)
+                    backup_existing(paths, summary_path)
                     write_json(summary_path, summary)
+                    record["summary"] = summary
                 except Exception as exc:
                     record["errors"].append(f"Summarization failed: {exc}")
                     print(f"[summarize] Failed for {record['query']}: {exc}")
+                    failure_path = paths["run"] / "summary_failures" / f"{record['slug']}.json"
+                    backup_existing(paths, failure_path)
+                    write_json(failure_path, {
+                        "created_at": utc_now(), "error": str(exc),
+                        "attempts": getattr(exc, "attempts", []),
+                    })
         finally:
             summarizer.cleanup()
             del summarizer
-
-    for record in records:
-        summary_path = paths["summaries"] / f"{record['slug']}.json"
-        record["summary_path"] = str(summary_path)
-        if summary_path.exists():
-            record["summary"] = read_json(summary_path)
-        elif not args.skip_summarization:
-            record["errors"].append("No generated summary is available.")
 
 
 def image_generation_stage(records, paths, args):
@@ -288,6 +326,22 @@ def pdf_stage(records, paths, args):
         print("[pdf] Skipped by command-line option.")
         return None
 
+    # Never publish an old or incomplete book as a successful new result.
+    incomplete = False
+    for record in records:
+        record.pop("pdf_path", None)
+        try:
+            validate_summary(record.get("summary"), record["source"].get("summary"),
+                             args.summary_min_words, args.summary_max_words)
+            if not Path(record["generated_image_path"]).is_file():
+                raise ValueError("Generated image is missing.")
+        except ValueError as exc:
+            record["errors"].append(f"PDF not rebuilt: {exc}")
+            incomplete = True
+    if incomplete:
+        print("[pdf] Book not rebuilt: some pages lack a valid biography or image. Existing PDFs are unchanged.")
+        return None
+
     concatenator = Concatenator()
     book_pages = []
     for record in records:
@@ -305,11 +359,13 @@ def pdf_stage(records, paths, args):
             "source_url": source.get("page_url"),
         }
         page_path = paths["pages"] / f"{record['slug']}.pdf"
-        if args.force or not page_path.exists():
-            print(f"[pdf] {source['title']}")
-            if not concatenator.create_book([page], page_path):
-                record["errors"].append("PDF page creation failed.")
-                continue
+        # PDFs are cheap to rebuild, and depend on both current text and images.
+        # Existence alone cannot detect stale PDFs after a summary repair.
+        backup_existing(paths, page_path)
+        print(f"[pdf] {source['title']}")
+        if not concatenator.create_book([page], page_path):
+            record["errors"].append("PDF page creation failed.")
+            return None
         record["pdf_path"] = str(page_path)
         book_pages.append(page)
 
@@ -318,10 +374,10 @@ def pdf_stage(records, paths, args):
         return None
 
     book_path = paths["run"] / "coloring_book.pdf"
-    if args.force or not book_path.exists():
-        print(f"[pdf] Combined book with {len(book_pages)} page(s)")
-        if not concatenator.create_book(book_pages, book_path):
-            return None
+    backup_existing(paths, book_path)
+    print(f"[pdf] Combined book with {len(book_pages)} page(s)")
+    if not concatenator.create_book(book_pages, book_path):
+        return None
     return book_path
 
 
@@ -337,6 +393,8 @@ def manifest_record(record):
 
 
 def run_pipeline(args):
+    if args.repair_summaries:
+        return repair_summaries(args)
     started_at = utc_now()
     names = get_names(args)
     run_dir = Path(args.output_dir).resolve()
@@ -379,11 +437,77 @@ def run_pipeline(args):
         "items": [manifest_record(record) for record in records],
     }
     manifest_path = run_dir / "manifest.json"
+    backup_existing(paths, manifest_path)
     write_json(manifest_path, manifest)
     print(f"Manifest: {manifest_path}")
     if book_path:
         print(f"Final book: {book_path}")
     return manifest
+
+
+def repair_summaries(args):
+    """Recover an existing run with no Wikipedia calls or FLUX initialization."""
+    run_dir = Path(args.output_dir).resolve()
+    manifest_path = run_dir / "manifest.json"
+    original = read_json(manifest_path)
+    config = original["configuration"]
+    # Preserve the experiment's actual Qwen configuration and image provenance.
+    for key in ("qwen_model", "qwen_revision", "qwen_quantization", "target_age"):
+        if key in config:
+            setattr(args, key, config[key])
+    args.summary_min_words, args.summary_max_words = config.get("summary_word_range", [80, 110])
+    paths = ensure_run_directories(run_dir, create=not args.check_only)
+    names = config["names"]
+    if not names:
+        raise ValueError("The saved manifest contains no subjects.")
+    records = []
+    invalid = []
+    for name in names:
+        slug = slugify(name)
+        source_path = paths["source"] / f"{slug}.json"
+        source = read_json(source_path)
+        if not source.get("summary"):
+            raise ValueError(f"Saved source text is missing for {name}.")
+        image_path = paths["images"] / f"{slug}.png"
+        if not image_path.is_file():
+            raise FileNotFoundError(f"Saved FLUX image is missing: {image_path}")
+        record = {"query": name, "slug": slug, "source": source, "errors": [],
+                  "source_metadata_path": str(source_path),
+                  "generated_image_path": str(image_path),
+                  "generation_metadata_path": str(paths["generation"] / f"{slug}.json")}
+        try:
+            summary = load_valid_summary(record, paths, args)
+            print(f"[check] {name}: valid ({len(summary['summary'].split())} words)")
+        except (OSError, ValueError) as exc:
+            invalid.append(name)
+            print(f"[check] {name}: needs repair ({exc})")
+        records.append(record)
+    print(f"[check] {len(invalid)}/{len(records)} biographies need regeneration; all saved images are present.")
+    if args.check_only:
+        return {"invalid_summaries": invalid, "subjects": len(records)}
+
+    print("[repair] Reusing saved sources and FLUX images. Loading Qwen only if needed.")
+    started_at = utc_now()
+    summarization_stage(records, paths, args)
+    book_path = pdf_stage(records, paths, args)
+    repair_record = {"started_at": started_at, "completed_at": utc_now(),
+                     "runtime": runtime_info(), "validation_version": 1,
+                     "book_path": str(book_path) if book_path else None,
+                     "items": [manifest_record(record) for record in records]}
+    backup_existing(paths, run_dir / "repair_manifest.json")
+    write_json(run_dir / "repair_manifest.json", repair_record)
+    # Keep original image-run timing, runtime, configuration and provenance.
+    backup_existing(paths, manifest_path)
+    updated = dict(original)
+    updated["book_path"] = repair_record["book_path"]
+    updated["items"] = repair_record["items"]
+    updated["summary_repairs"] = [*original.get("summary_repairs", []), repair_record]
+    write_json(manifest_path, updated)
+    if book_path:
+        print(f"[repair] Final book: {book_path}")
+    else:
+        print("[repair] Incomplete. See repair_manifest.json and summary_failures/. Rerun to resume.")
+    return updated
 
 
 def parse_args(argv=None):
@@ -414,6 +538,10 @@ def parse_args(argv=None):
     parser.add_argument("--skip-summarization", action="store_true")
     parser.add_argument("--skip-image-generation", action="store_true")
     parser.add_argument("--skip-pdf", action="store_true")
+    parser.add_argument("--repair-summaries", action="store_true",
+                        help="Repair summaries and rebuild PDFs using saved sources/images only.")
+    parser.add_argument("--check-only", action="store_true",
+                        help="With --repair-summaries, check cached biographies without models or writes.")
     parser.add_argument("--allow-cpu", action="store_true", help="Allow impractically slow FLUX CPU inference.")
     parser.add_argument(
         "--t4-safe-mode",
@@ -424,6 +552,10 @@ def parse_args(argv=None):
         ),
     )
     args = parser.parse_args(argv)
+    if args.check_only and not args.repair_summaries:
+        parser.error("--check-only requires --repair-summaries")
+    if args.repair_summaries and (args.force or args.skip_summarization or args.skip_pdf):
+        parser.error("--repair-summaries cannot be combined with --force or stage-skipping flags")
     if args.t4_safe_mode:
         args.qwen_quantization = "4bit"
         args.flux_quantization = "8bit"
@@ -439,7 +571,10 @@ def main(argv=None):
     args = parse_args(argv)
     if args.summary_min_words > args.summary_max_words:
         raise SystemExit("--summary-min-words must not exceed --summary-max-words")
-    run_pipeline(args)
+    result = run_pipeline(args)
+    if args.repair_summaries and not args.check_only and not result.get("book_path"):
+        raise SystemExit("Summary repair is incomplete; inspect repair_manifest.json before continuing.")
+    return result
 
 
 if __name__ == "__main__":

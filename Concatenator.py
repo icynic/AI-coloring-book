@@ -3,13 +3,18 @@
 from __future__ import annotations
 
 from pathlib import Path
+import os
+import tempfile
 import textwrap
+from xml.sax.saxutils import escape
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
+from reportlab.lib.styles import ParagraphStyle
+from reportlab.platypus import Paragraph
 
 
 class Concatenator:
@@ -61,13 +66,17 @@ class Concatenator:
             mask="auto",
         )
 
-        document.setFont(self.text_font, 12)
-        text_y = image_y - 34
-        for line in textwrap.wrap(page.get("text", ""), width=86):
-            if text_y < 78:
-                break
-            document.drawString(margin, text_y, line)
-            text_y -= 16
+        text = page.get("text", "")
+        if not isinstance(text, str) or not any(char.isalpha() for char in text):
+            raise ValueError("A real biography is required; placeholder text cannot be printed.")
+        paragraph = Paragraph(escape(text), ParagraphStyle(
+            "biography", fontName=self.text_font, fontSize=12, leading=16,
+        ))
+        text_top = image_y - 24
+        _, text_height = paragraph.wrap(max_image_width, text_top - 78)
+        if text_height > text_top - 78:
+            raise ValueError("Biography does not fit the page; refusing to silently truncate it.")
+        paragraph.drawOn(document, margin, text_top - text_height)
 
         attribution_parts = []
         if page.get("source_url"):
@@ -110,7 +119,12 @@ class Concatenator:
     def create_book(self, pages, output_path):
         """Create one multi-page PDF from page dictionaries."""
         output_path = self._ensure_pdf_path(output_path)
-        document = canvas.Canvas(str(output_path), pagesize=A4)
+        if not pages:
+            return False
+        temporary = tempfile.NamedTemporaryFile(dir=output_path.parent, suffix=".pdf", delete=False)
+        temporary_path = Path(temporary.name)
+        temporary.close()
+        document = canvas.Canvas(str(temporary_path), pagesize=A4)
         document.setTitle(pages[0].get("title", "AI Coloring Book") if len(pages) == 1 else "AI Coloring Book")
         document.setAuthor("AI Coloring Book research prototype")
         document.setSubject("AI-generated biographical coloring-book pages")
@@ -120,10 +134,13 @@ class Concatenator:
                 if index < len(pages) - 1:
                     document.showPage()
             document.save()
+            os.replace(temporary_path, output_path)
             return True
         except Exception as exc:
             print(f"Error creating PDF {output_path}: {exc}")
             return False
+        finally:
+            temporary_path.unlink(missing_ok=True)
 
 
 if __name__ == "__main__":

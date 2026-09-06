@@ -17,8 +17,8 @@ class PipelineHelpersTest(unittest.TestCase):
 
     def test_grounded_summary_json_parser(self):
         summary, evidence = Summarizer._parse_json_response(
-            'prefix {"summary": "A short biography.", '
-            '"supporting_source_sentence_ids": [2, 1, 2]} suffix'
+            '```json\n{"summary": "A short biography.", '
+            '"supporting_source_sentence_ids": [2, 1, 2]}\n```'
         )
         self.assertEqual(summary, "A short biography.")
         self.assertEqual(evidence, [1, 2])
@@ -92,6 +92,8 @@ class PipelineHelpersTest(unittest.TestCase):
                     str(run_dir),
                     "--skip-summarization",
                     "--skip-image-generation",
+                    "--summary-min-words", "8",
+                    "--summary-max-words", "20",
                 ]
             )
             manifest = run_pipeline(args)
