@@ -116,6 +116,7 @@ class Summarizer:
         numbered_source = "\n".join(
             f"[{index}] {sentence}" for index, sentence in enumerate(sentences, start=1)
         )
+        target_words = (min_words + max_words) // 2
         messages = [
             {
                 "role": "system",
@@ -137,7 +138,10 @@ class Summarizer:
                         "type": "text",
                         "text": (
                             f"Write a {min_words}-{max_words} word English biography for readers aged "
-                            f"{target_age}. Use 4-6 clear sentences. Prefer important achievements and "
+                            f"{target_age}. Aim for about {target_words} words of biography text "
+                            "(the JSON keys and evidence IDs do not count). Use clear sentences. "
+                            "Do not repeat facts or add unsupported claims to pad the length. "
+                            "Prefer important achievements and "
                             "avoid distressing or unnecessary detail. Return a JSON object with "
                             "exactly two keys: summary (the complete biography as a string) and "
                             "supporting_source_sentence_ids (a non-empty list of integer IDs). "
@@ -151,6 +155,7 @@ class Summarizer:
                 ],
             },
         ]
+        original_messages = messages
 
         attempts = []
         for attempt in range(max_attempts):
@@ -165,6 +170,7 @@ class Summarizer:
             )
             raw_text = self._extract_text(output)
             attempt_record = {"max_new_tokens": token_budget, "raw_model_response": raw_text}
+            record = None
             try:
                 summary, evidence = self._parse_json_response(raw_text)
                 record = {"summary": summary, "supporting_source_sentence_ids": evidence}
@@ -173,11 +179,25 @@ class Summarizer:
                 attempt_record["error"] = str(exc)
                 attempts.append(attempt_record)
                 print(f"[summarize] Invalid answer ({attempt + 1}/{max_attempts}): {exc}")
-                # Regenerate from the source with concise feedback, not from
-                # rejected reasoning or an incomplete previous draft.
-                messages[-1]["content"][0]["text"] += (
-                    f"\nVALIDATION FEEDBACK: {exc} Produce a corrected complete JSON answer."
-                )
+                feedback = f"VALIDATION FEEDBACK: {exc} Return a corrected complete JSON answer."
+                # A structurally valid draft can be revised directly. Never put
+                # rejected reasoning or malformed JSON back into the conversation.
+                if record is not None:
+                    actual_words = len(record["summary"].split())
+                    if actual_words < min_words:
+                        feedback += (
+                            f" The biography alone has {actual_words} words. Aim for {target_words}; "
+                            f"it needs at least {min_words - actual_words} more words. "
+                            "Rewrite using only additional details explicitly in SOURCE, or clearer "
+                            "wording of supported facts. Do not invent facts or repeat sentences."
+                        )
+                    elif actual_words > max_words:
+                        feedback += f" Shorten the biography to about {target_words} words without losing key facts."
+                    messages = original_messages + [{"role": "assistant", "content": [
+                        {"type": "text", "text": json.dumps(record, ensure_ascii=False)}]}]
+                else:
+                    messages = list(original_messages)
+                messages = messages + [{"role": "user", "content": [{"type": "text", "text": feedback}]}]
                 continue
             attempts.append(attempt_record)
             return {

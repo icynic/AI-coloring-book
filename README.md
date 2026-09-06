@@ -81,6 +81,10 @@ This regenerates invalid summaries and rebuilds PDFs using the saved source
 text and FLUX images; no Wikipedia requests or FLUX inference are performed.
 Replaced artifacts are backed up first. See [the recovery runbook](docs/COLAB.md)
 for the Drive command, validation checks, and read-only inspection.
+If complete biographies are rejected only for being slightly short, repair can
+explicitly override the length criterion with `--summary-min-words 60
+--summary-max-words 110`. The change is recorded for evaluation transparency;
+omitted bounds inherit the saved range. It does not disable other validation.
 
 ## Outputs
 

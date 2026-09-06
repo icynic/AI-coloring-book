@@ -137,6 +137,16 @@ def load_valid_summary(record, paths, args):
     return summary
 
 
+def resolve_summary_word_range(args, saved_range=(80, 110)):
+    """Only inherit unspecified bounds; never discard explicit CLI overrides."""
+    lower = args.summary_min_words if args.summary_min_words is not None else saved_range[0]
+    upper = args.summary_max_words if args.summary_max_words is not None else saved_range[1]
+    if type(lower) is not int or type(upper) is not int or not 1 <= lower <= upper:
+        raise ValueError("Summary word range must satisfy 1 <= minimum <= maximum.")
+    args.summary_min_words, args.summary_max_words = lower, upper
+    return [lower, upper]
+
+
 def fetch_stage(names, paths, force=False, fuzzy_search=True):
     records = []
     for query in names:
@@ -331,6 +341,8 @@ def pdf_stage(records, paths, args):
     for record in records:
         record.pop("pdf_path", None)
         try:
+            if record.get("summary") is None:
+                raise ValueError("No validated biography is available; see the summarization error above.")
             validate_summary(record.get("summary"), record["source"].get("summary"),
                              args.summary_min_words, args.summary_max_words)
             if not Path(record["generated_image_path"]).is_file():
@@ -455,7 +467,11 @@ def repair_summaries(args):
     for key in ("qwen_model", "qwen_revision", "qwen_quantization", "target_age"):
         if key in config:
             setattr(args, key, config[key])
-    args.summary_min_words, args.summary_max_words = config.get("summary_word_range", [80, 110])
+    previous_word_range = config.get("summary_word_range", [80, 110])
+    word_range = resolve_summary_word_range(args, previous_word_range)
+    print(f"[repair] Summary word range: {word_range[0]}-{word_range[1]}")
+    if word_range != previous_word_range:
+        print(f"[repair] Explicit length-policy change from {previous_word_range}; this will be recorded.")
     paths = ensure_run_directories(run_dir, create=not args.check_only)
     names = config["names"]
     if not names:
@@ -492,13 +508,17 @@ def repair_summaries(args):
     book_path = pdf_stage(records, paths, args)
     repair_record = {"started_at": started_at, "completed_at": utc_now(),
                      "runtime": runtime_info(), "validation_version": 1,
+                     "previous_summary_word_range": previous_word_range,
+                     "summary_word_range": word_range,
                      "book_path": str(book_path) if book_path else None,
                      "items": [manifest_record(record) for record in records]}
     backup_existing(paths, run_dir / "repair_manifest.json")
     write_json(run_dir / "repair_manifest.json", repair_record)
-    # Keep original image-run timing, runtime, configuration and provenance.
+    # Keep original image-run timing, runtime, model settings and provenance.
+    # Persist the effective length policy so an ordinary repair resume inherits it.
     backup_existing(paths, manifest_path)
     updated = dict(original)
+    updated["configuration"] = {**config, "summary_word_range": word_range}
     updated["book_path"] = repair_record["book_path"]
     updated["items"] = repair_record["items"]
     updated["summary_repairs"] = [*original.get("summary_repairs", []), repair_record]
@@ -531,8 +551,10 @@ def parse_args(argv=None):
     parser.add_argument("--max-sequence-length", type=int, default=512)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--target-age", default="10-14")
-    parser.add_argument("--summary-min-words", type=int, default=80)
-    parser.add_argument("--summary-max-words", type=int, default=110)
+    parser.add_argument("--summary-min-words", type=int, default=None,
+                        help="Minimum biography words (default: 80; repair inherits the saved range).")
+    parser.add_argument("--summary-max-words", type=int, default=None,
+                        help="Maximum biography words (default: 110; repair inherits the saved range).")
     parser.add_argument("--no-fuzzy-search", action="store_true")
     parser.add_argument("--force", action="store_true", help="Regenerate existing stage outputs.")
     parser.add_argument("--skip-summarization", action="store_true")
@@ -556,6 +578,11 @@ def parse_args(argv=None):
         parser.error("--check-only requires --repair-summaries")
     if args.repair_summaries and (args.force or args.skip_summarization or args.skip_pdf):
         parser.error("--repair-summaries cannot be combined with --force or stage-skipping flags")
+    if not args.repair_summaries:
+        try:
+            resolve_summary_word_range(args)
+        except ValueError as exc:
+            parser.error(str(exc))
     if args.t4_safe_mode:
         args.qwen_quantization = "4bit"
         args.flux_quantization = "8bit"
@@ -569,8 +596,6 @@ def parse_args(argv=None):
 
 def main(argv=None):
     args = parse_args(argv)
-    if args.summary_min_words > args.summary_max_words:
-        raise SystemExit("--summary-min-words must not exceed --summary-max-words")
     result = run_pipeline(args)
     if args.repair_summaries and not args.check_only and not result.get("book_path"):
         raise SystemExit("Summary repair is incomplete; inspect repair_manifest.json before continuing.")

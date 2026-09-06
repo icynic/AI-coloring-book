@@ -27,6 +27,12 @@ it does not replace human factual review.
 artifacts are kept in `backups/<timestamp>/` when replacements are written.
 `repair_manifest.json` records summary-only recovery; `manifest.json` retains
 the original image-run runtime and adds `summary_repairs`.
+Each new repair record includes `previous_summary_word_range` and
+`summary_word_range`. Explicit CLI length overrides update the manifest's
+`configuration.summary_word_range` for subsequent repair resumes. The earlier
+configuration is retained in backups and repair history; model/image settings
+are not changed. Cached biographies keep their original requested length, so
+inspect per-summary settings when reporting prompt consistency.
 
 The evidence is an audit aid, not a correctness guarantee. The final evaluation
 must still verify each atomic claim against the saved source.

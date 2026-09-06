@@ -58,7 +58,10 @@ required.
 
 Qwen's thinking mode is disabled explicitly. Generation uses a 1024-token
 budget and at most one validation retry, with 2048 tokens and corrective
-feedback. Failed outputs and their reasons are recorded in `summary_failures/`.
+feedback. The prompt targets the middle of the requested word range. When a
+complete JSON draft fails validation, the retry receives that draft and its
+measured word count so it can revise the text; malformed JSON and reasoning
+are never reused as drafts. Failed outputs and their reasons are recorded in `summary_failures/`.
 They are not treated as usable summaries.
 
 All individual PDFs and the combined PDF are rebuilt from validated text.
@@ -77,6 +80,50 @@ python main.py --repair-summaries --check-only --output-dir output/evaluation_fl
 Recovery needs the project dependencies and a runtime able to load Qwen. It
 does not require FLUX inference. A regular notebook rerun also validates cached
 summaries now, but recovery is preferable when the source downloads are fixed.
+
+### Complete biographies rejected only for length
+
+The default 80-110-word range is a project design choice, not a model constraint.
+`max_new_tokens` is an output ceiling: increasing it does not force the model
+to write a longer biography. Do not pad a short source with unsupported facts.
+
+If a 60-110-word range is acceptable for the final prototype, select it
+explicitly in the updated notebook:
+
+```python
+REPAIR_SUMMARIES_ONLY = True
+SUMMARY_MIN_WORDS = 60
+SUMMARY_MAX_WORDS = 110
+```
+
+Or use the updated CLI from the repository directory:
+
+```python
+import subprocess, sys
+subprocess.run([
+    sys.executable, '-u', 'main.py', '--repair-summaries',
+    '--output-dir', '/content/drive/MyDrive/AIColoringBook/evaluation_flux_t4',
+    '--summary-min-words', '60', '--summary-max-words', '110',
+], check=True)
+```
+
+Explicit bounds override the saved range; omitted bounds inherit it. A repair
+records the previous and effective ranges in `repair_manifest.json` and
+`manifest.json.summary_repairs`, and persists the effective range in
+`manifest.json.configuration` for the next repair resume. `--check-only` never
+persists changes. Without an override, the original stricter range is retained.
+
+Valid cached biographies are reused. Failed attempts in `summary_failures/`
+are diagnostic logs, not validated caches; those people are regenerated.
+Existing source text and all FLUX images are preserved. Evidence, JSON,
+placeholder and word-count checks still apply, and generation can still fail.
+
+This is an explicit change to the length criterion after inspecting failures.
+Document it in the report, use the chosen final acceptance range consistently,
+and retain the original failure logs. Existing cached biographies retain their
+original `requested_word_range`; newly generated biographies record the new
+range. Do not describe all samples as generated with an identical prompt or
+as satisfying the original 80-word minimum unless that is actually true.
 
 ## Memory fallbacks
 
