@@ -5,10 +5,24 @@ the provenance record for the final evaluation.
 
 ## `sources/<person>.json`
 
-Contains the original query, resolved Wikipedia title, plain-text lead,
+Contains the original query, resolved Wikipedia title, selected source prose,
 Wikipedia page and revision IDs, revision timestamp, retrieval timestamp,
 portrait URL and local path, Wikimedia file title/revision information, artist,
 credit, license, license URL, and SHA-256 hashes of the source text and image.
+
+Source policy 2 stores the actual Qwen input in the legacy `summary` field and
+keeps the full introductory text separately as `lead_summary`. It adds
+`source_text_kind`, `source_policy_version`, `source_word_count`,
+`source_max_words` (800), and `source_passages` (section paths, paragraph indices,
+selected text). `text_source_url` identifies the requested article revision;
+`text_retrieved_at` records the new text retrieval, separately from portrait
+retrieval. The selected text and its hash are the frozen evidence snapshot;
+rendered templates can change even when the article revision is unchanged.
+
+`source_refresh_manifest.json` and `manifest.json.source_refreshes` record
+previous/new source hashes, word counts, revisions, selected sections, and errors.
+Source refresh preserves image-related fields and files and invalidates the
+current book pointer before replacing any source. Backups retain the earlier run.
 
 ## `summaries/<person>.json`
 
@@ -16,6 +30,11 @@ Contains the generated biography, supporting source sentence IDs and sentence
 text, word count, target age, requested length, Qwen model ID and revision,
 quantization and model-load time,
 raw model response, source revision, and creation time.
+
+New summaries also record `source_text_sha256` and `source_policy_version`.
+Policy-2 source caches require a matching summary source hash; a matching page
+revision alone is insufficient after expanding the selected text. Legacy
+summaries without hashes are regenerated when their source is upgraded.
 
 New records include `validation_version`, `generation_settings` (thinking
 disabled, deterministic decoding, output-token budget), and

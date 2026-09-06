@@ -19,7 +19,8 @@ import sys
 import torch
 
 from Concatenator import Concatenator
-from Fetcher import get_person_info
+from Fetcher import get_person_info, refresh_person_text
+from source_text import SOURCE_POLICY_VERSION, text_sha256
 from summary_validation import validate_summary
 
 
@@ -134,6 +135,10 @@ def load_valid_summary(record, paths, args):
     revision = summary.get("source_revision_id")
     if revision is not None and revision != record["source"].get("revision_id"):
         raise ValueError("Summary refers to a different Wikipedia revision.")
+    source_hash = text_sha256(record["source"].get("summary") or "")
+    if summary.get("source_text_sha256") or record["source"].get("source_policy_version") == SOURCE_POLICY_VERSION:
+        if summary.get("source_text_sha256") != source_hash:
+            raise ValueError("Source text changed (or the old summary has no source hash); regenerate its evidence IDs.")
     return summary
 
 
@@ -165,6 +170,8 @@ def fetch_stage(names, paths, force=False, fuzzy_search=True):
         if cache_is_complete and not force:
             source = cached_source
             print(f"[fetch] Reusing {metadata_path}")
+            if source.get("source_policy_version") != SOURCE_POLICY_VERSION:
+                print("[fetch] Legacy lead-only cache. Use --refresh-source-text to upgrade the saved article text.")
         else:
             print(f"[fetch] {query}")
             source = get_person_info(
@@ -194,6 +201,13 @@ def summarization_stage(records, paths, args):
     pending = []
     for record in records:
         record.pop("summary", None)
+        source_words = len((record["source"].get("summary") or "").split())
+        if record["source"].get("source_policy_version") == SOURCE_POLICY_VERSION and source_words < args.summary_min_words:
+            record["errors"].append(
+                f"Source has only {source_words} words for a {args.summary_min_words}-word minimum biography. "
+                "Provide more verified source material or explicitly revise the length policy; generation was skipped."
+            )
+            continue
         summary_path = paths["summaries"] / f"{record['slug']}.json"
         record["summary_path"] = str(summary_path)
         invalid_reason = None
@@ -234,6 +248,8 @@ def summarization_stage(records, paths, args):
                             "query": record["query"],
                             "title": record["source"]["title"],
                             "source_revision_id": record["source"].get("revision_id"),
+                            "source_text_sha256": text_sha256(record["source"]["summary"]),
+                            "source_policy_version": record["source"].get("source_policy_version", 1),
                             "created_at": utc_now(),
                         }
                     )
@@ -401,10 +417,18 @@ def manifest_record(record):
     } | {
         "title": record.get("source", {}).get("title"),
         "source_revision_id": record.get("source", {}).get("revision_id"),
+        "source_text_sha256": record.get("source", {}).get("source_text_sha256"),
+        "source_policy_version": record.get("source", {}).get("source_policy_version", 1),
     }
 
 
 def run_pipeline(args):
+    if args.refresh_source_text:
+        refresh = refresh_sources(args)
+        if args.check_only or not args.repair_summaries:
+            return refresh
+        if refresh["errors"]:
+            raise SystemExit("Source refresh is incomplete. Qwen/FLUX were not loaded; inspect source_refresh_manifest.json.")
     if args.repair_summaries:
         return repair_summaries(args)
     started_at = utc_now()
@@ -413,6 +437,7 @@ def run_pipeline(args):
     paths = ensure_run_directories(run_dir)
     print(f"Run directory: {run_dir}")
     print(f"People: {', '.join(names)}")
+    print(f"Summary word range: {args.summary_min_words}-{args.summary_max_words}")
 
     records = fetch_stage(
         names,
@@ -457,6 +482,80 @@ def run_pipeline(args):
     return manifest
 
 
+def refresh_sources(args):
+    """Upgrade text checkpoints at their original revisions, without any models/images."""
+    import requests
+
+    run_dir = Path(args.output_dir).resolve()
+    paths = ensure_run_directories(run_dir, create=False)
+    manifest_path = run_dir / "manifest.json"
+    original = read_json(manifest_path)
+    names = original["configuration"]["names"]
+    if not names:
+        raise ValueError("The saved manifest contains no subjects.")
+    pending = []
+    for name in names:
+        source_path = paths["source"] / f"{slugify(name)}.json"
+        source = read_json(source_path)
+        current = (source.get("source_policy_version") == SOURCE_POLICY_VERSION
+                   and source.get("source_text_sha256") == text_sha256(source.get("summary") or "")
+                   and bool(source.get("source_passages")))
+        words = len((source.get("summary") or "").split())
+        print(f"[source] {name}: {words} words; {'current article cache' if current else 'needs article text'}")
+        if not current:
+            pending.append((name, source_path, source))
+    if args.check_only:
+        return {"pending_source_refreshes": [name for name, _, _ in pending], "subjects": len(names), "errors": []}
+
+    report = {"started_at": utc_now(), "source_policy_version": SOURCE_POLICY_VERSION,
+              "items": [], "errors": []}
+    updated = dict(original)
+    updated["source_refreshes"] = [*original.get("source_refreshes", []), report]
+    if pending:
+        # Invalidate the book pointer BEFORE changing text, including interrupted runs.
+        # The actual old PDFs, summaries and all images remain untouched.
+        updated["book_path"] = None
+    backup_existing(paths, manifest_path)
+    backup_existing(paths, run_dir / "source_refresh_manifest.json")
+    write_json(manifest_path, updated)
+    rate_limited = False
+    for name, source_path, source in pending:
+        item = {"query": name, "source_revision_id": source.get("revision_id"),
+                "previous_source_text_sha256": source.get("source_text_sha256"),
+                "previous_word_count": len((source.get("summary") or "").split())}
+        try:
+            if rate_limited:
+                raise ValueError("Deferred after Wikimedia HTTP 429. Retry the refresh later.")
+            replacement = refresh_person_text(source)
+            if (replacement.get("revision_id"), replacement.get("page_id")) != (source.get("revision_id"), source.get("page_id")):
+                raise ValueError("Text recovery must preserve the saved page and revision.")
+            backup_existing(paths, source_path)
+            write_json(source_path, replacement)
+            item.update({"source_text_sha256": replacement["source_text_sha256"],
+                         "word_count": replacement["source_word_count"],
+                         "sections": list(dict.fromkeys(p["section"] for p in replacement["source_passages"])),
+                         "status": "updated"})
+            print(f"[source] {name}: {item['previous_word_count']} -> {item['word_count']} words; images unchanged")
+            for record in updated.get("items", []):
+                if record.get("query") == name:
+                    record.pop("pdf_path", None)
+                    record["errors"] = ["Source text updated; regenerate the biography and PDF with --repair-summaries."]
+        except (requests.RequestException, OSError, ValueError) as exc:
+            rate_limited = rate_limited or getattr(getattr(exc, "response", None), "status_code", None) == 429
+            item.update({"status": "failed", "error": str(exc)})
+            report["errors"].append(f"{name}: {exc}")
+            print(f"[source] Failed for {name}: {exc}; original source kept")
+        report["items"].append(item)
+        write_json(manifest_path, updated)
+        write_json(run_dir / "source_refresh_manifest.json", report)
+    report["completed_at"] = utc_now()
+    write_json(manifest_path, updated)
+    write_json(run_dir / "source_refresh_manifest.json", report)
+    print(f"[source] Refreshed {sum(item['status'] == 'updated' for item in report['items'])} source(s); "
+          f"{len(report['errors'])} error(s). No Qwen or FLUX inference was performed in this stage.")
+    return report
+
+
 def repair_summaries(args):
     """Recover an existing run with no Wikipedia calls or FLUX initialization."""
     run_dir = Path(args.output_dir).resolve()
@@ -484,6 +583,8 @@ def repair_summaries(args):
         source = read_json(source_path)
         if not source.get("summary"):
             raise ValueError(f"Saved source text is missing for {name}.")
+        print(f"[check] {name}: {len(source['summary'].split())} source words "
+              f"(policy {source.get('source_policy_version', 1)})")
         image_path = paths["images"] / f"{slug}.png"
         if not image_path.is_file():
             raise FileNotFoundError(f"Saved FLUX image is missing: {image_path}")
@@ -562,8 +663,10 @@ def parse_args(argv=None):
     parser.add_argument("--skip-pdf", action="store_true")
     parser.add_argument("--repair-summaries", action="store_true",
                         help="Repair summaries and rebuild PDFs using saved sources/images only.")
+    parser.add_argument("--refresh-source-text", action="store_true",
+                        help="Upgrade saved lead-only sources to bounded article prose; no images/models. Can precede --repair-summaries.")
     parser.add_argument("--check-only", action="store_true",
-                        help="With --repair-summaries, check cached biographies without models or writes.")
+                        help="With repair/refresh, check caches without network, models or writes.")
     parser.add_argument("--allow-cpu", action="store_true", help="Allow impractically slow FLUX CPU inference.")
     parser.add_argument(
         "--t4-safe-mode",
@@ -574,10 +677,10 @@ def parse_args(argv=None):
         ),
     )
     args = parser.parse_args(argv)
-    if args.check_only and not args.repair_summaries:
-        parser.error("--check-only requires --repair-summaries")
-    if args.repair_summaries and (args.force or args.skip_summarization or args.skip_pdf):
-        parser.error("--repair-summaries cannot be combined with --force or stage-skipping flags")
+    if args.check_only and not (args.repair_summaries or args.refresh_source_text):
+        parser.error("--check-only requires --repair-summaries or --refresh-source-text")
+    if (args.repair_summaries or args.refresh_source_text) and (args.force or args.skip_summarization or args.skip_pdf):
+        parser.error("Repair/refresh cannot be combined with --force or stage-skipping flags")
     if not args.repair_summaries:
         try:
             resolve_summary_word_range(args)
@@ -597,6 +700,8 @@ def parse_args(argv=None):
 def main(argv=None):
     args = parse_args(argv)
     result = run_pipeline(args)
+    if args.refresh_source_text and not args.repair_summaries and result.get("errors"):
+        raise SystemExit("Source refresh is incomplete; inspect source_refresh_manifest.json.")
     if args.repair_summaries and not args.check_only and not result.get("book_path"):
         raise SystemExit("Summary repair is incomplete; inspect repair_manifest.json before continuing.")
     return result

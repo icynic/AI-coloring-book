@@ -81,6 +81,74 @@ Recovery needs the project dependencies and a runtime able to load Qwen. It
 does not require FLUX inference. A regular notebook rerun also validates cached
 summaries now, but recovery is preferable when the source downloads are fixed.
 
+### Fix lead-only sources before retrying summaries
+
+Old runs used only the Wikipedia introduction (`exintro=1`). This can be just
+one sentence. The new source policy reads article HTML at the saved revision,
+extracts prose paragraphs (not tables, navigation, references or lists), and
+selects at most 800 words. Paragraphs mentioning Marburg, lead text, achievements
+and biographical sections are prioritized deterministically. Each paragraph is
+capped at 200 words and the lead at 180; complete sentences are selected and
+returned in original article order. Unclassified sections are used only while
+fewer than 200 words have been selected. These heuristics need human review.
+
+For an existing evaluation run, sync **all updated Python files**, including the
+new `source_text.py`, and open the **updated notebook**. Pulling repository files
+does not change cells in an already-open Colab notebook. Set:
+
+```python
+REPAIR_SUMMARIES_ONLY = True
+REFRESH_SOURCE_TEXT = True
+SUMMARY_MIN_WORDS = 80
+SUMMARY_MAX_WORDS = 110
+FORCE_REGENERATE = False
+```
+
+Keep the existing Drive `OUTPUT_DIR`, then rerun configuration and pipeline cells.
+The command printed above generation must contain `--refresh-source-text` and
+the chosen `--summary-min-words`/`--summary-max-words` flags. You may explicitly
+choose 60 as the minimum instead; there is no silent relaxation.
+
+A self-contained alternative cell, run from the updated repository directory:
+
+```python
+import subprocess, sys
+subprocess.run([
+    sys.executable, '-u', 'main.py', '--refresh-source-text', '--repair-summaries',
+    '--output-dir', '/content/drive/MyDrive/AIColoringBook/evaluation_flux_t4',
+    '--summary-min-words', '80', '--summary-max-words', '110',
+], check=True)
+```
+
+This upgrades every legacy subject, not just the last failed names. The article
+page/revision IDs, portrait files, portrait attribution, FLUX images, generation
+metadata and original GPU runtime are preserved. Old source JSON is backed up.
+Changing the selected text invalidates cached summaries by their text hash,
+even when the revision number is unchanged; evidence sentence IDs are rebuilt
+by Qwen. Previously successful summaries can therefore also need regeneration.
+Old PDFs stay on disk but are not advertised as current books after a refresh.
+
+`--refresh-source-text` alone performs **only text recovery**, on local CPU or
+Colab, without loading either model. For example, locally:
+
+```bash
+python main.py --refresh-source-text --output-dir output/evaluation_flux_t4
+```
+
+If recovering locally, synchronize the updated `sources/*.json` back to the same
+Drive run before running `--repair-summaries` in Colab; keep backups and
+`source_refresh_manifest.json` for provenance. A refresh against already-current
+sources performs no further requests. Add `--check-only` for a read-only,
+network-free inspection. With both recovery flags, check-only checks the source
+upgrade plan; run a separate `--repair-summaries --check-only` to inspect summaries.
+
+Failures preserve the previous source and stop a combined run before Qwen is
+loaded. HTTP 429 aborts subsequent source requests in that run; retry later.
+Do not use `--force`. If even the full selected source is shorter than the
+requested biography minimum, generation is skipped with an actionable error
+instead of padding the biography with guessed facts. Adequate source length
+does not guarantee factuality or successful generation; audit the new summaries.
+
 ### Complete biographies rejected only for length
 
 The default 80-110-word range is a project design choice, not a model constraint.

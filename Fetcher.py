@@ -13,6 +13,7 @@ import urllib.parse
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+from source_text import select_article_text
 
 
 WIKIMEDIA_API_URL = "https://en.wikipedia.org/w/api.php"
@@ -90,6 +91,46 @@ def _extmetadata_value(metadata: dict, key: str) -> str | None:
     return _plain_text(entry.get("value"))
 
 
+def _fetch_article_text(session, revision_id, page_id):
+    """Read the saved revision, not a potentially newer live lead extract."""
+    if type(revision_id) is not int or revision_id < 1 or type(page_id) is not int or page_id < 1:
+        raise ValueError("A saved page ID and revision ID are required for reproducible text recovery.")
+    response = _get(session, WIKIMEDIA_API_URL, params={
+        "action": "parse", "oldid": revision_id, "prop": "text|revid",
+        "disableeditsection": 1, "disablelimitreport": 1,
+        "format": "json", "formatversion": 2,
+    }, timeout=REQUEST_TIMEOUT)
+    response.raise_for_status()
+    payload = response.json()
+    if payload.get("error"):
+        raise ValueError(f"Wikipedia parse failed: {payload['error']}")
+    parsed = payload.get("parse") or {}
+    if parsed.get("revid") != revision_id or parsed.get("pageid") != page_id:
+        raise ValueError("Wikipedia returned a different page or revision; refusing to replace the source.")
+    article_html = parsed.get("text")
+    if not isinstance(article_html, str):
+        raise ValueError("Wikipedia did not return article HTML.")
+    return select_article_text(article_html) | {
+        "text_retrieved_at": datetime.now(timezone.utc).isoformat(),
+        "text_source_url": f"https://en.wikipedia.org/w/index.php?oldid={revision_id}",
+    }
+
+
+def refresh_person_text(source):
+    """Text-only recovery; never request an image or change portrait metadata."""
+    # Bound transient retries; a 429 is reported immediately instead of waiting
+    # on repeated Retry-After delays. Rerun later if Wikimedia rate-limits this IP.
+    with requests.Session() as session:
+        session.headers.update({"User-Agent": USER_AGENT})
+        session.mount("https://", HTTPAdapter(max_retries=Retry(
+            total=2, connect=2, read=1, status=2, backoff_factor=1,
+            status_forcelist=(500, 502, 503, 504),
+            allowed_methods=frozenset({"GET"}), respect_retry_after_header=False,
+        )))
+        text = _fetch_article_text(session, source.get("revision_id"), source.get("page_id"))
+    return {**source, **text}
+
+
 def _fetch_page_metadata(session: requests.Session, title: str) -> dict:
     """Return the exact Wikipedia revision and Wikimedia image attribution."""
     response = _get(
@@ -97,13 +138,11 @@ def _fetch_page_metadata(session: requests.Session, title: str) -> dict:
         WIKIMEDIA_API_URL,
         params={
             "action": "query",
-            "prop": "info|revisions|pageimages|extracts",
+            "prop": "info|revisions|pageimages",
             "inprop": "url",
             "rvprop": "ids|timestamp",
             "piprop": "name|original|thumbnail",
             "pithumbsize": 1600,
-            "exintro": 1,
-            "explaintext": 1,
             "redirects": 1,
             "titles": title,
             "format": "json",
@@ -121,7 +160,6 @@ def _fetch_page_metadata(session: requests.Session, title: str) -> dict:
     image_title = page.get("pageimage")
     result = {
         "title": page.get("title", title),
-        "summary": page.get("extract"),
         "page_id": page.get("pageid"),
         "revision_id": revision.get("revid"),
         "revision_timestamp": revision.get("timestamp"),
@@ -129,6 +167,7 @@ def _fetch_page_metadata(session: requests.Session, title: str) -> dict:
         "image_title": image_title,
         "image_url": (page.get("original") or page.get("thumbnail") or {}).get("source"),
     }
+    result.update(_fetch_article_text(session, result["revision_id"], result["page_id"]))
 
     if not image_title:
         return result
@@ -168,7 +207,7 @@ def _fetch_page_metadata(session: requests.Session, title: str) -> dict:
 
 
 def get_person_info(query, fuzzy_search=True, save_folder=None):
-    """Fetch a person's English Wikipedia lead and main image.
+    """Fetch bounded biographical prose from the article and its main image.
 
     Metadata is returned with every sample so experiments can be traced to an
     exact Wikipedia revision and the source image can be attributed correctly.

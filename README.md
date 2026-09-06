@@ -12,7 +12,7 @@ renders individual pages plus a combined A4 PDF book.
 
 ```text
 Names
-  -> Wikipedia lead, exact revision, portrait, and license metadata
+  -> bounded Wikipedia article prose, exact revision, portrait, and license metadata
   -> Qwen/Qwen3.5-4B grounded biography and supporting sentence IDs
   -> release Qwen GPU memory
   -> black-forest-labs/FLUX.2-klein-4B portrait-to-line-art editing
@@ -86,6 +86,17 @@ explicitly override the length criterion with `--summary-min-words 60
 --summary-max-words 110`. The change is recorded for evaluation transparency;
 omitted bounds inherit the saved range. It does not disable other validation.
 
+If an old source contains only a one-line introduction, upgrade the source first:
+
+```bash
+python main.py --refresh-source-text --repair-summaries --output-dir output/evaluation_flux_t4 --summary-min-words 80 --summary-max-words 110
+```
+
+This reads article prose at the original revision, backs up old source records,
+and regenerates summaries whose input text changed. It never redownloads or
+regenerates images. Use `--refresh-source-text` alone for CPU-only text recovery.
+See the runbook above for the Colab switches and source-selection policy.
+
 ## Outputs
 
 Each run directory contains:
@@ -121,7 +132,8 @@ best result from multiple seeds.
 ## Repository map
 
 - `main.py` — complete staged pipeline and CLI.
-- `Fetcher.py` — Wikipedia text, portrait, revision, and license retrieval.
+- `Fetcher.py` — Wikipedia article text, portrait, revision, and license retrieval.
+- `source_text.py` — deterministic, bounded selection of article paragraphs.
 - `Summarizer.py` — grounded Qwen3.5 biography generation.
 - `GeneratorFlux2KleinL4Colab.py` — final FLUX image editor.
 - `Concatenator.py` — individual and multi-page A4 PDF rendering.
