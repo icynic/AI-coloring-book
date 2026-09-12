@@ -34,7 +34,7 @@ def validate_fields(record):
     return summary, sorted(set(evidence))
 
 
-def parse_response(raw_text):
+def parse_json_object(raw_text):
     """Parse the whole final answer, never search arbitrary prose for braces."""
     if not isinstance(raw_text, str):
         raise ValueError("Expected a text response.")
@@ -52,7 +52,13 @@ def parse_response(raw_text):
         parsed = json.loads(answer)
     except json.JSONDecodeError as exc:
         raise ValueError("Expected only a complete final JSON object; prose or truncation found.") from exc
-    return validate_fields(parsed)
+    if not isinstance(parsed, dict):
+        raise ValueError("Expected a JSON object.")
+    return parsed
+
+
+def parse_response(raw_text):
+    return validate_fields(parse_json_object(raw_text))
 
 
 def validate_summary(record, source_text, min_words=80, max_words=110):
@@ -70,3 +76,49 @@ def validate_summary(record, source_text, min_words=80, max_words=110):
         if record["supporting_source_sentences"] != expected:
             raise ValueError("Stored supporting sentences do not match the saved source.")
     return word_count
+
+
+def fit_summary_length(record, source_text, min_words=80, max_words=110):
+    """Fit a moderate overshoot by keeping an unchanged, complete-sentence prefix.
+
+    This is a conservative English boundary heuristic, not semantic validation.
+    Do not change source sentence segmentation: existing evidence IDs depend on it.
+    """
+    summary, _ = validate_fields(record)
+    count = len(summary.split())
+    # Validate evidence and stored metadata before considering a length edit.
+    validate_summary(record, source_text, 1, max(count, max_words))
+    if min_words <= count <= max_words:
+        return dict(record)
+    # Never pad short answers or compress a wildly overlong answer mechanically.
+    if count > max_words and count <= max_words * 1.25:
+        candidates = []
+        boundary = re.compile(r'''[.!?]["”')\]]*(?=\s+[A-Z0-9"“(]|$)''')
+        abbreviation = re.compile(
+            r"(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|Jr|Sr|vs|etc|e\.g|i\.e)|\b[A-Z]|(?:\b[A-Za-z]\.)+[A-Za-z])\.$",
+            re.I,
+        )
+        for match in boundary.finditer(summary):
+            prefix = summary[:match.end()].rstrip()
+            if abbreviation.search(summary[:match.start() + 1]):
+                continue
+            if any(prefix.count(left) != prefix.count(right) for left, right in (("(", ")"), ("[", "]"), ("“", "”"))):
+                continue
+            if prefix.count('"') % 2:
+                continue
+            words = len(prefix.split())
+            if min_words <= words <= max_words:
+                candidates.append((prefix, words))
+        if candidates:
+            prefix, words = candidates[-1]
+            fitted = {**record, "summary": prefix, "word_count": words,
+                      "length_adjustment": {"method": "complete_sentence_prefix_v1",
+                                            "original_summary": summary, "original_word_count": count,
+                                            "final_word_count": words,
+                                            "removed_tail": summary[len(prefix):],
+                                            "accepted_word_range": [min_words, max_words]}}
+            validate_summary(fitted, source_text, min_words, max_words)
+            return fitted
+    # Retain the same validation error and allow a model revision or explicit failure.
+    validate_summary(record, source_text, min_words, max_words)
+    return dict(record)

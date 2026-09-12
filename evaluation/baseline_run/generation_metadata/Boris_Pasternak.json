@@ -1,0 +1,23 @@
+{
+  "method": "SD1.5 + Lineart ControlNet + AnimeLineartLoRA",
+  "base_model": "runwayml/stable-diffusion-v1-5",
+  "controlnet_model": "lllyasviel/control_v11p_sd15_lineart",
+  "lineart_detector": "lllyasviel/Annotators",
+  "lora_model": "beatless/AnimeLineartLoRA",
+  "subject_id": "M08",
+  "name": "Boris Pasternak",
+  "slug": "Boris_Pasternak",
+  "source_image": "D:\\Projects\\AIColoringBook\\output\\evaluation_flux_t4\\sources\\images\\Boris_Pasternak.jpg",
+  "output_image": "D:\\Projects\\AIColoringBook\\evaluation\\baseline_run\\generated_images\\Boris_Pasternak.png",
+  "control_image": "D:\\Projects\\AIColoringBook\\evaluation\\baseline_run\\control_images\\Boris_Pasternak.png",
+  "seed": 49,
+  "steps": 15,
+  "controlnet_conditioning_scale": 0.6,
+  "guidance_scale": 10.0,
+  "prompt": "c0l0ringb00k, black and white coloring page, line art, white background, thick lines",
+  "negative_prompt": "shadow, shading, gradients, stippling, screentone, texture, background details, flowers, plants, stripes, grayscale, colored, 3d, realistic, photo, noise, blurry, deformed, filled, filled-in, filled-in lines, filled-in shapes, filled-in patterns, filled background",
+  "device": "cuda",
+  "dtype": "torch.float16",
+  "elapsed_seconds": 10.781,
+  "created_at": "2026-09-07T14:14:59.284050+00:00"
+}

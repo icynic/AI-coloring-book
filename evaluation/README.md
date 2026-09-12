@@ -71,7 +71,9 @@ readability and age appropriateness from 1 to 5 and verify that every saved
 supporting sentence ID is within the source sentence range.
 
 This is an audit of the final Qwen output, not a comparison against an image
-baseline. Do not use an LLM to judge its own output.
+baseline. Do not use the generator's self-check verdicts as independent factual
+accuracy measurements. Same-model feedback may be a system refinement stage,
+but its outputs still need a separate source audit.
 
 ## 5. Analyze the completed forms
 
@@ -90,7 +92,62 @@ test, and a paired bootstrap confidence interval. Preference uses an exact
 two-sided binomial test after excluding ties. This avoids treating multiple
 ratings of the same subject as independent samples.
 
+## 6. Automatic image proxies
+
+If no perceptual study is conducted, run the reproducible automatic image
+analysis instead of leaving the Evaluation section empty:
+
+```bash
+python evaluation/evaluate_images_auto.py \
+  --flux-run path/to/evaluation_flux_t4 \
+  --baseline-run evaluation/baseline_run \
+  --output-dir evaluation/automatic_results
+```
+
+The script normalizes every generated image to a 512 by 512 white canvas and
+reports white-space, ink, dark-fill, midtone, edge, small-component, largest
+dark-region, and unexpected-color ratios. By default it also downloads
+`facebook/dinov2-small` once and records a source-portrait cosine similarity.
+Use `--skip-embedding` for a fully offline run.
+
+The output contains per-image measurements, paired method summaries, an exact
+subject-level sign-flip test, a paired bootstrap interval, and the exact model
+revision used. Treat all measurements as proxies. In particular, DINOv2
+similarity is not face-recognition accuracy, low edge density can reward an
+overly empty drawing, and the exploratory p-values are not corrected for
+multiple comparisons.
+
+## 7. Biography integrity and source-grounded audit
+
+```bash
+python evaluation/audit_biographies.py \
+  --flux-run path/to/evaluation_flux_t4 \
+  --annotations evaluation/biography_claim_annotations.json \
+  --output-dir evaluation/biography_results
+```
+
+Without `--annotations`, the script runs only deterministic length, provenance,
+evidence-sentence matching, and approximate readability checks and creates a
+numbered source review packet. It does not automatically label factual claims
+as supported. The saved annotations are a single **agent-assisted** qualitative
+review, not a human evaluation or an automatic entailment benchmark. Every
+annotation is bound to the exact summary and source text hashes; changing either
+requires a new review.
+
+The four claim labels are supported, partial, unsupported, and source-inconsistent.
+The latter separates Wikipedia input conflicts from unsupported additions by
+the summarizer. Approximate Flesch scores use an English syllable heuristic and
+do not prove age appropriateness. The script never modifies the frozen summaries
+or PDFs. Use any suggested edits in a separate final-prototype revision and retain
+the evaluated version for reproducibility.
+
 ## Reporting rules
+
+Source-grounded Qwen refinement is available via `refine_biographies.py`; see
+`docs/COLAB.md`. Keep the refined prototype in a separate directory and do not
+mix its biographies with the frozen experiment's audit. Existing annotations
+are hash-bound and must be reviewed anew for changed text. A before/after
+comparison must use fresh source audits, not the model's own pass rate.
 
 - Report all eight intended subjects and every failure.
 - Report the number of evaluators and missing ratings.

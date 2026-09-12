@@ -8,7 +8,8 @@ import time
 
 import torch
 from transformers import BitsAndBytesConfig, pipeline
-from summary_validation import parse_response, split_source_sentences, validate_summary
+from summary_validation import fit_summary_length, parse_response, split_source_sentences, validate_summary
+from summary_review import refine_biography
 
 
 DEFAULT_MODEL = "Qwen/Qwen3.5-4B"
@@ -141,8 +142,9 @@ class Summarizer:
                             f"{target_age}. Aim for about {target_words} words of biography text "
                             "(the JSON keys and evidence IDs do not count). Use clear sentences. "
                             "Do not repeat facts or add unsupported claims to pad the length. "
-                            "Prefer important achievements and "
-                            "avoid distressing or unnecessary detail. Return a JSON object with "
+                            "Prefer important achievements and avoid distressing or unnecessary detail. "
+                            "Mention the person's relation with the University of Marburg if there are any in the source. "
+                            "Return a JSON object with "
                             "exactly two keys: summary (the complete biography as a string) and "
                             "supporting_source_sentence_ids (a non-empty list of integer IDs). "
                             "Write the actual biography, never placeholders or reasoning. "
@@ -174,6 +176,7 @@ class Summarizer:
             try:
                 summary, evidence = self._parse_json_response(raw_text)
                 record = {"summary": summary, "supporting_source_sentence_ids": evidence}
+                record = fit_summary_length(record, text, min_words, max_words)
                 word_count = validate_summary(record, text, min_words, max_words)
             except ValueError as exc:
                 attempt_record["error"] = str(exc)
@@ -200,6 +203,9 @@ class Summarizer:
                 messages = messages + [{"role": "user", "content": [{"type": "text", "text": feedback}]}]
                 continue
             attempts.append(attempt_record)
+            if record.get("length_adjustment"):
+                adjustment = record["length_adjustment"]
+                print(f"[summarize] Kept complete sentences: {adjustment['original_word_count']} -> {word_count} words")
             return {
                 **record,
                 "supporting_source_sentences": [sentences[index - 1] for index in evidence],
@@ -215,6 +221,7 @@ class Summarizer:
                                         "max_new_tokens": token_budget},
                 "generation_attempts": attempts,
                 "validation_version": 1,
+                "postprocessing_version": 1,
             }
         raise SummaryGenerationError(
             f"No valid biography after {max_attempts} attempts: {attempts[-1]['error']}", attempts
@@ -223,6 +230,25 @@ class Summarizer:
     def summarize(self, text, max_new_tokens=1024):
         """Backward-compatible helper returning only the biography text."""
         return self.summarize_with_evidence(text, max_new_tokens=max_new_tokens)["summary"]
+
+    def refine_with_evidence(self, record, text, target_age="10-14", min_words=60,
+                             max_words=110, max_revisions=2):
+        """Reuse the loaded Qwen in fresh reviewer/editor chats, sequentially."""
+        def generate(messages, token_budget):
+            output = self.pipe(
+                text=messages, enable_thinking=False, return_full_text=False,
+                generate_kwargs={"max_new_tokens": token_budget, "do_sample": False},
+            )
+            return self._extract_text(output)
+
+        return refine_biography(
+            generate, record, text,
+            reviewer={"model_id": self.model_name, "model_revision": self.revision,
+                      "quantization": self.quantization, "same_model": True,
+                      "fresh_chat": True},
+            target_age=target_age, min_words=min_words, max_words=max_words,
+            max_revisions=max_revisions,
+        )
 
     def cleanup(self):
         if hasattr(self, "pipe"):

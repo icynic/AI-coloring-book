@@ -1,0 +1,2457 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-09-12T14:03:26.587304+00:00",
+  "flux_run": "D:\\Projects\\AIColoringBook\\output\\evaluation_flux_t4",
+  "claim_review_provenance": {
+    "review_type": "agent_assisted_source_grounded_claim_audit",
+    "reviewer": "Codex assistant; not the Qwen generator",
+    "review_date": "2026-09-12",
+    "independent_human_raters": 0,
+    "scope": "Saved Wikipedia input only; no claim of independently verified historical truth.",
+    "claim_unit": "Independently checkable propositions with temporal/relational qualifiers; nationality, occupation, birth and death are separated. Pure adjectives such as famous or monumental are excluded, but causal relations are included.",
+    "status_definitions": {
+      "supported": "The full proposition is entailed by the saved input.",
+      "partial": "The core is supported but a qualifier, generalization or causal relationship is not established.",
+      "unsupported": "The saved input does not entail the proposition, or a stated detail conflicts with the relevant passage. This does not establish that the proposition is false outside the input.",
+      "source_inconsistent": "At least one passage supports the proposition but another saved passage materially conflicts with it."
+    },
+    "limitations": "One agent-assisted annotation pass; labels should be presented as a qualitative source audit, not a human factuality benchmark or an automatic entailment score."
+  },
+  "overview": {
+    "biographies": 8,
+    "integrity_passed": 8,
+    "min_word_count": 85,
+    "max_word_count": 110,
+    "mean_word_count": 96.625,
+    "marburg_mentioned": 4,
+    "mean_estimated_grade": 12.03125,
+    "reviewed_claims": 149,
+    "claim_status_counts": {
+      "partial": 5,
+      "source_inconsistent": 2,
+      "supported": 139,
+      "unsupported": 3
+    },
+    "strict_supported_claim_rate": 0.9328859060402684
+  },
+  "limitations": [
+    "Rule checks validate stored provenance and structure, not semantic entailment.",
+    "Claim labels are explicit agent-assisted annotations, not an independent human evaluation or an automatic NLI metric.",
+    "Support is relative to saved Wikipedia input, which can contain factual conflicts.",
+    "Flesch metrics use estimated English syllables and are approximate, especially for proper names and specialist vocabulary.",
+    "Readability formulas do not establish suitability for ages 10-14."
+  ],
+  "readability_references": [
+    {
+      "citation": "Flesch, R. (1948). A new readability yardstick.",
+      "url": "https://doi.org/10.1037/h0057532"
+    },
+    {
+      "citation": "Kincaid, J. P., Fishburne, R. P., Rogers, R. L., and Chissom, B. S. (1975). Derivation of new readability formulas for Navy enlisted personnel.",
+      "url": "https://stars.library.ucf.edu/istlibrary/56/"
+    }
+  ],
+  "readability_method": {
+    "word_count_for_length": "Whitespace-separated tokens; identical to generation validation.",
+    "words_for_readability": "Unicode letter sequences; dates are excluded and hyphenated terms are separated.",
+    "reading_ease_formula": "206.835 - 1.015 * words_per_sentence - 84.6 * syllables_per_word",
+    "grade_formula": "0.39 * words_per_sentence + 11.8 * syllables_per_word - 15.59",
+    "syllables": "English vowel-group heuristic with silent-e adjustment; not a pronunciation dictionary."
+  },
+  "items": [
+    {
+      "slug": "Philip_I_Landgrave_of_Hesse",
+      "name": "Philip I, Landgrave of Hesse",
+      "summary": "Philip I, Landgrave of Hesse (1504–1567), nicknamed 'the Magnanimous,' was a German nobleman and champion of the Protestant Reformation, one of the most important early Protestant rulers in Germany. Despite imperfect education, he developed rapidly as a statesman. He embraced Protestantism in 1524 and helped suppress the German Peasants' War by defeating Thomas Müntzer at the Battle of Frankenhausen. Philip organized the church in Hesse according to Protestant principles, leading to the founding of the University of Marburg in 1527. He contributed to the Regensburg religious colloquy in 1541 and successfully secured imperial permission for the university. On his death, his territories were divided between his four sons.",
+      "summary_text_sha256": "a81cb1a4e8644ca1f21a9cbc686191dd31a2240d6e0f95c5857f2a80fb6e48c7",
+      "source_text_sha256": "610b1aa09f608fed26c4000c0cfa81b9da8e630a440107c6a9c78dd00b770d2b",
+      "source_revision_id": 1371713289,
+      "source_url": "https://en.wikipedia.org/w/index.php?oldid=1371713289",
+      "word_count": 108,
+      "word_range": [
+        60,
+        110
+      ],
+      "integrity": {
+        "valid": true,
+        "checks": {
+          "source_metadata_hash_matches_text": true,
+          "summary_source_hash_matches_text": true,
+          "source_revision_matches": true,
+          "schema_length_and_evidence_match": true
+        },
+        "errors": []
+      },
+      "readability": {
+        "lexical_word_count": 104,
+        "sentence_count": 6,
+        "mean_sentence_words": 17.333,
+        "max_sentence_words": 28,
+        "sentences_over_25_words": 1,
+        "estimated_syllable_count": 203,
+        "estimated_flesch_reading_ease": 24.109,
+        "estimated_flesch_kincaid_grade": 14.203,
+        "syllable_method": "english_vowel_group_heuristic_v1",
+        "contains_marburg": true
+      },
+      "generation_attempts": 2,
+      "length_adjusted": false,
+      "source_fragment_sentence_ids": [],
+      "claim_audit": {
+        "claim_count": 16,
+        "status_counts": {
+          "partial": 1,
+          "source_inconsistent": 0,
+          "supported": 15,
+          "unsupported": 0
+        },
+        "strict_supported_claim_rate": 0.9375,
+        "supported_claims_with_complete_generated_citations": 11,
+        "generated_citation_ids_unused_by_reviewed_claims": [],
+        "claims": [
+          {
+            "claim": "Philip was born in 1504.",
+            "status": "supported",
+            "evidence_ids": [
+              1
+            ],
+            "claim_id": 1,
+            "evidence_sentences": [
+              "Philip I, Landgrave of Hesse (13 November 1504 – 31 March 1567), nicknamed der Großmütige (lit."
+            ],
+            "evidence_all_in_generated_citations": false
+          },
+          {
+            "claim": "Philip died in 1567.",
+            "status": "supported",
+            "evidence_ids": [
+              1
+            ],
+            "claim_id": 2,
+            "evidence_sentences": [
+              "Philip I, Landgrave of Hesse (13 November 1504 – 31 March 1567), nicknamed der Großmütige (lit."
+            ],
+            "evidence_all_in_generated_citations": false
+          },
+          {
+            "claim": "Philip was nicknamed the Magnanimous.",
+            "status": "supported",
+            "evidence_ids": [
+              1,
+              2
+            ],
+            "claim_id": 3,
+            "evidence_sentences": [
+              "Philip I, Landgrave of Hesse (13 November 1504 – 31 March 1567), nicknamed der Großmütige (lit.",
+              "'the Magnanimous'), was a German nobleman and a champion of the Protestant Reformation, notable for being one of the most important of the early Protestant rulers in Germany."
+            ],
+            "evidence_all_in_generated_citations": false
+          },
+          {
+            "claim": "Philip was a German nobleman.",
+            "status": "supported",
+            "evidence_ids": [
+              2
+            ],
+            "claim_id": 4,
+            "evidence_sentences": [
+              "'the Magnanimous'), was a German nobleman and a champion of the Protestant Reformation, notable for being one of the most important of the early Protestant rulers in Germany."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Philip championed the Protestant Reformation.",
+            "status": "supported",
+            "evidence_ids": [
+              2
+            ],
+            "claim_id": 5,
+            "evidence_sentences": [
+              "'the Magnanimous'), was a German nobleman and a champion of the Protestant Reformation, notable for being one of the most important of the early Protestant rulers in Germany."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Philip was an important early Protestant ruler in Germany.",
+            "status": "supported",
+            "evidence_ids": [
+              2
+            ],
+            "claim_id": 6,
+            "evidence_sentences": [
+              "'the Magnanimous'), was a German nobleman and a champion of the Protestant Reformation, notable for being one of the most important of the early Protestant rulers in Germany."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Philip had an imperfect education.",
+            "status": "supported",
+            "evidence_ids": [
+              9
+            ],
+            "claim_id": 7,
+            "evidence_sentences": [
+              "His education had been very imperfect, and his moral and religious training had been neglected."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Philip developed rapidly as a statesman despite that education.",
+            "status": "supported",
+            "evidence_ids": [
+              9,
+              10
+            ],
+            "claim_id": 8,
+            "evidence_sentences": [
+              "His education had been very imperfect, and his moral and religious training had been neglected.",
+              "Despite all this, he developed rapidly as a statesman, and soon began to take steps to increase his personal authority as a ruler."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Philip embraced Protestantism in 1524.",
+            "status": "supported",
+            "evidence_ids": [
+              13
+            ],
+            "claim_id": 9,
+            "evidence_sentences": [
+              "Philip embraced Protestantism in 1524 after a personal meeting with the theologian Philipp Melanchthon."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Philip helped suppress the German Peasants' War by defeating Thomas Müntzer at Frankenhausen.",
+            "status": "supported",
+            "evidence_ids": [
+              14
+            ],
+            "claim_id": 10,
+            "evidence_sentences": [
+              "He then helped suppress the German Peasants' War by defeating Thomas Müntzer at the Battle of Frankenhausen."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Philip reorganized the church in Hesse according to Protestant principles.",
+            "status": "supported",
+            "evidence_ids": [
+              19,
+              21
+            ],
+            "claim_id": 11,
+            "evidence_sentences": [
+              "Although there was no strong popular movement for Protestantism in Hesse, Philip determined to organize the church there according to Protestant principles.",
+              "While the radical policy of Lambert, embodied in the Homberg church order, was abandoned, at least in part, the monasteries and religious foundations were dissolved and their property was applied to charitable and scholastic purposes."
+            ],
+            "evidence_all_in_generated_citations": false
+          },
+          {
+            "claim": "The church reorganization led to the university's founding.",
+            "status": "partial",
+            "evidence_ids": [
+              19,
+              21,
+              22
+            ],
+            "note": "The source places church reform and scholastic expenditure together, but does not explicitly establish this causal relationship.",
+            "claim_id": 12,
+            "evidence_sentences": [
+              "Although there was no strong popular movement for Protestantism in Hesse, Philip determined to organize the church there according to Protestant principles.",
+              "While the radical policy of Lambert, embodied in the Homberg church order, was abandoned, at least in part, the monasteries and religious foundations were dissolved and their property was applied to charitable and scholastic purposes.",
+              "The University of Marburg was founded in the summer of 1527 to be, like the University of Wittenberg, a school for Protestant theologians."
+            ],
+            "evidence_all_in_generated_citations": false
+          },
+          {
+            "claim": "The University of Marburg was founded in 1527.",
+            "status": "supported",
+            "evidence_ids": [
+              22
+            ],
+            "claim_id": 13,
+            "evidence_sentences": [
+              "The University of Marburg was founded in the summer of 1527 to be, like the University of Wittenberg, a school for Protestant theologians."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Philip contributed to the Regensburg religious colloquy in 1541.",
+            "status": "supported",
+            "evidence_ids": [
+              29
+            ],
+            "claim_id": 14,
+            "evidence_sentences": [
+              "Secure of the imperial favor, he agreed to appear at the Diet of Regensburg in 1541, and his presence there contributed to the direction affairs took at the Regensburg religious colloquy, in which Melanchthon, Bucer, and Johann Pistorius the Elder represented the Protestant side."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Philip secured imperial permission for a university at Marburg.",
+            "status": "supported",
+            "evidence_ids": [
+              30
+            ],
+            "claim_id": 15,
+            "evidence_sentences": [
+              "Philip was successful in securing the permission of the Emperor to establish a university at Marburg, and in return for the concession of an amnesty, he agreed to stand by Charles against all his enemies, excepting Protestantism and the Schmalkaldic League; to make no alliances with France, England, or the duke of Cleves; and to prevent the admission of these powers into the Schmalkaldic League."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Philip's territories were divided among four sons after his death.",
+            "status": "supported",
+            "evidence_ids": [
+              31
+            ],
+            "claim_id": 16,
+            "evidence_sentences": [
+              "On his death, his territories were divided (Hesse becoming Hesse-Kassel, Hesse-Marburg, Hesse-Rheinfels, and Hesse-Darmstadt) between his four sons by his first wife, namely William IV of Hesse-Kassel, Louis IV of Hesse-Marburg, Philip II of Hesse-Rheinfels, and Georg I of Hesse-Darmstadt."
+            ],
+            "evidence_all_in_generated_citations": true
+          }
+        ],
+        "content_notes": [
+          "Dense political and religious terminology needs explanation for younger readers.",
+          "The birth/death evidence is in source sentence 1, which the generated citation list omits."
+        ]
+      }
+    },
+    {
+      "slug": "Robert_Bunsen",
+      "name": "Robert Bunsen",
+      "summary": "Robert Wilhelm Eberhard Bunsen was a German chemist born in 1811. He studied with famous scientists like Gauss and Liebig before becoming a professor. Bunsen developed the Bunsen burner with his assistant Peter Desaga, creating a very hot and clean flame used in labs today. Working with Gustav Kirchhoff, he discovered two new elements: caesium in 1860 and rubidium in 1861. They invented a prototype spectroscope to study the colors of heated elements. Bunsen also did important work in photochemistry and organic arsenic chemistry, leading to effective antidotes for poisoning. His discoveries brought him wide acclaim and an award named after him.",
+      "summary_text_sha256": "57f1f38fea34f78138cfb7352b3c7a773984ac90923190fb8212b1f5d8260e87",
+      "source_text_sha256": "8384c2c2cc630e458e76159e9fd732a08a12d39a10510c92b8dbe1284144e7a3",
+      "source_revision_id": 1371989991,
+      "source_url": "https://en.wikipedia.org/w/index.php?oldid=1371989991",
+      "word_count": 102,
+      "word_range": [
+        60,
+        110
+      ],
+      "integrity": {
+        "valid": true,
+        "checks": {
+          "source_metadata_hash_matches_text": true,
+          "summary_source_hash_matches_text": true,
+          "source_revision_matches": true,
+          "schema_length_and_evidence_match": true
+        },
+        "errors": []
+      },
+      "readability": {
+        "lexical_word_count": 99,
+        "sentence_count": 7,
+        "mean_sentence_words": 14.143,
+        "max_sentence_words": 21,
+        "sentences_over_25_words": 0,
+        "estimated_syllable_count": 181,
+        "estimated_flesch_reading_ease": 37.807,
+        "estimated_flesch_kincaid_grade": 11.499,
+        "syllable_method": "english_vowel_group_heuristic_v1",
+        "contains_marburg": false
+      },
+      "generation_attempts": 2,
+      "length_adjusted": false,
+      "source_fragment_sentence_ids": [],
+      "claim_audit": {
+        "claim_count": 19,
+        "status_counts": {
+          "partial": 1,
+          "source_inconsistent": 0,
+          "supported": 17,
+          "unsupported": 1
+        },
+        "strict_supported_claim_rate": 0.8947368421052632,
+        "supported_claims_with_complete_generated_citations": 12,
+        "generated_citation_ids_unused_by_reviewed_claims": [
+          28,
+          37,
+          38,
+          39
+        ],
+        "claims": [
+          {
+            "claim": "Robert Bunsen was German.",
+            "status": "supported",
+            "evidence_ids": [
+              1
+            ],
+            "claim_id": 1,
+            "evidence_sentences": [
+              "Robert Wilhelm Eberhard Bunsen (German: [ˈʁoːbɛʁt ˈbʊnzn̩]; 30 March 1811 – 16 August 1899) was a German chemist."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Robert Bunsen was a chemist.",
+            "status": "supported",
+            "evidence_ids": [
+              1
+            ],
+            "claim_id": 2,
+            "evidence_sentences": [
+              "Robert Wilhelm Eberhard Bunsen (German: [ˈʁoːbɛʁt ˈbʊnzn̩]; 30 March 1811 – 16 August 1899) was a German chemist."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Bunsen was born in 1811.",
+            "status": "supported",
+            "evidence_ids": [
+              1
+            ],
+            "claim_id": 3,
+            "evidence_sentences": [
+              "Robert Wilhelm Eberhard Bunsen (German: [ˈʁoːbɛʁt ˈbʊnzn̩]; 30 March 1811 – 16 August 1899) was a German chemist."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Bunsen studied with Gauss before becoming a professor.",
+            "status": "supported",
+            "evidence_ids": [
+              8,
+              15
+            ],
+            "claim_id": 4,
+            "evidence_sentences": [
+              "After attending school in Holzminden, Bunsen matriculated at Göttingen in 1828 and studied chemistry with Friedrich Stromeyer, mineralogy with Johann Friedrich Ludwig Hausmann, and mathematics with Carl Friedrich Gauss.",
+              "Bunsen taught there for three years, and then accepted an associate professorship at the University of Marburg, where he continued his studies on cacodyl derivatives."
+            ],
+            "evidence_all_in_generated_citations": false
+          },
+          {
+            "claim": "Bunsen studied with Liebig before becoming a professor.",
+            "status": "unsupported",
+            "evidence_ids": [
+              10
+            ],
+            "note": "The saved source says he met Liebig during his travels; it does not say he studied with him.",
+            "claim_id": 5,
+            "evidence_sentences": [
+              "During his journeys, Bunsen met the scientists Friedlieb Runge (who discovered aniline and in 1819 isolated caffeine), Justus von Liebig in Giessen, and Eilhard Mitscherlich in Bonn."
+            ],
+            "evidence_all_in_generated_citations": false
+          },
+          {
+            "claim": "Bunsen became a professor.",
+            "status": "supported",
+            "evidence_ids": [
+              15,
+              16
+            ],
+            "claim_id": 6,
+            "evidence_sentences": [
+              "Bunsen taught there for three years, and then accepted an associate professorship at the University of Marburg, where he continued his studies on cacodyl derivatives.",
+              "He was promoted to full professorship in 1841."
+            ],
+            "evidence_all_in_generated_citations": false
+          },
+          {
+            "claim": "Bunsen developed the Bunsen burner with Peter Desaga.",
+            "status": "supported",
+            "evidence_ids": [
+              5
+            ],
+            "claim_id": 7,
+            "evidence_sentences": [
+              "With his laboratory assistant Peter Desaga, he developed the Bunsen burner, an improvement on the laboratory burners then in use."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Peter Desaga was Bunsen's assistant.",
+            "status": "supported",
+            "evidence_ids": [
+              5
+            ],
+            "claim_id": 8,
+            "evidence_sentences": [
+              "With his laboratory assistant Peter Desaga, he developed the Bunsen burner, an improvement on the laboratory burners then in use."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Their burner produced a very hot and clean flame.",
+            "status": "supported",
+            "evidence_ids": [
+              29
+            ],
+            "claim_id": 9,
+            "evidence_sentences": [
+              "The newer design of Bunsen and Desaga, which provided a very hot and clean flame, is now called simply the \"Bunsen burner\", a common item of laboratory equipment."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "The Bunsen burner remains laboratory equipment.",
+            "status": "supported",
+            "evidence_ids": [
+              29
+            ],
+            "claim_id": 10,
+            "evidence_sentences": [
+              "The newer design of Bunsen and Desaga, which provided a very hot and clean flame, is now called simply the \"Bunsen burner\", a common item of laboratory equipment."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Bunsen discovered caesium in 1860 with Gustav Kirchhoff.",
+            "status": "supported",
+            "evidence_ids": [
+              2
+            ],
+            "claim_id": 11,
+            "evidence_sentences": [
+              "He investigated emission spectra of heated elements, and discovered caesium in 1860 and rubidium in 1861 with the physicist Gustav Kirchhoff."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Bunsen discovered rubidium in 1861 with Gustav Kirchhoff.",
+            "status": "supported",
+            "evidence_ids": [
+              2
+            ],
+            "claim_id": 12,
+            "evidence_sentences": [
+              "He investigated emission spectra of heated elements, and discovered caesium in 1860 and rubidium in 1861 with the physicist Gustav Kirchhoff."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Bunsen and Kirchhoff invented a prototype spectroscope.",
+            "status": "supported",
+            "evidence_ids": [
+              31,
+              32
+            ],
+            "claim_id": 13,
+            "evidence_sentences": [
+              "In the summer of 1859, Kirchhoff suggested to Bunsen that he should try to form prismatic spectra of these colors.",
+              "By October of that year, the two scientists had invented an appropriate instrument, a prototype spectroscope, an improvement of Joseph von Fraunhofer's 1814 spectroscope."
+            ],
+            "evidence_all_in_generated_citations": false
+          },
+          {
+            "claim": "They used the spectroscope to study the colors/spectra of heated elements.",
+            "status": "supported",
+            "evidence_ids": [
+              30,
+              31,
+              32,
+              33
+            ],
+            "claim_id": 14,
+            "evidence_sentences": [
+              "There had been earlier studies of the characteristic colors of heated elements, but nothing systematic.",
+              "In the summer of 1859, Kirchhoff suggested to Bunsen that he should try to form prismatic spectra of these colors.",
+              "By October of that year, the two scientists had invented an appropriate instrument, a prototype spectroscope, an improvement of Joseph von Fraunhofer's 1814 spectroscope.",
+              "Using it, they were able to identify the characteristic spectra of sodium, lithium, and potassium."
+            ],
+            "evidence_all_in_generated_citations": false
+          },
+          {
+            "claim": "Bunsen did important work in photochemistry.",
+            "status": "supported",
+            "evidence_ids": [
+              4
+            ],
+            "claim_id": 15,
+            "evidence_sentences": [
+              "Bunsen also developed several gas-analytical methods, was a pioneer in photochemistry, and did early work in the field of organic arsenic chemistry."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Bunsen did early work in organic arsenic chemistry.",
+            "status": "supported",
+            "evidence_ids": [
+              4
+            ],
+            "claim_id": 16,
+            "evidence_sentences": [
+              "Bunsen also developed several gas-analytical methods, was a pioneer in photochemistry, and did early work in the field of organic arsenic chemistry."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Bunsen's work led to effective antidotes for poisoning.",
+            "status": "partial",
+            "evidence_ids": [
+              12
+            ],
+            "note": "The source supports one specific antidote against arsenic poisoning, not plural antidotes against poisoning in general.",
+            "claim_id": 17,
+            "evidence_sentences": [
+              "His discovery of the use of iron oxide hydrate as a precipitating agent led to what is still today the most effective antidote against arsenic poisoning."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Bunsen's work brought him wide acclaim.",
+            "status": "supported",
+            "evidence_ids": [
+              18
+            ],
+            "claim_id": 18,
+            "evidence_sentences": [
+              "Bunsen's work brought him quick and wide acclaim, partly because cacodyl, which is extremely toxic and undergoes spontaneous combustion in dry air, is so difficult to work with."
+            ],
+            "evidence_all_in_generated_citations": false
+          },
+          {
+            "claim": "An award was named after Bunsen.",
+            "status": "supported",
+            "evidence_ids": [
+              3
+            ],
+            "claim_id": 19,
+            "evidence_sentences": [
+              "The Bunsen–Kirchhoff Award for spectroscopy is named after Bunsen and Kirchhoff."
+            ],
+            "evidence_all_in_generated_citations": true
+          }
+        ],
+        "content_notes": [
+          "No Marburg connection is mentioned, although source sentences 15-17 describe it.",
+          "Photochemistry, spectroscope and organic arsenic chemistry are not explained.",
+          "Several factual claims are supported by the full saved source but their required evidence IDs are omitted from the generated citation list."
+        ]
+      }
+    },
+    {
+      "slug": "Emil_von_Behring",
+      "name": "Emil von Behring",
+      "summary": "Emil von Behring was a German physiologist who revolutionized medicine by developing serum therapy against diphtheria and tetanus. Born in 1854, he studied medicine in Berlin and later worked with Robert Koch. In 1890, he and Kitasato Shibasaburō discovered that injecting toxins into animals could produce antitoxins to cure these diseases. After optimizing the process, successful human treatments began in 1894. Behring founded a company to produce these treatments and became a professor at the University of Marburg. He was awarded the first Nobel Prize in Physiology or Medicine in 1901 for his work, earning him the title 'saviour of children' as diphtheria was a major cause of child death.",
+      "summary_text_sha256": "41ebba77c30aab1668f8f81f527b2017e17a8e4b3a03ea6548c9cc01c2ef0df3",
+      "source_text_sha256": "54cc9d23a819ed3cf22dc6563eb5afab4b93ded6b12f2632aa9c4e0234721c9b",
+      "source_revision_id": 1371990809,
+      "source_url": "https://en.wikipedia.org/w/index.php?oldid=1371990809",
+      "word_count": 110,
+      "word_range": [
+        60,
+        110
+      ],
+      "integrity": {
+        "valid": true,
+        "checks": {
+          "source_metadata_hash_matches_text": true,
+          "summary_source_hash_matches_text": true,
+          "source_revision_matches": true,
+          "schema_length_and_evidence_match": true
+        },
+        "errors": []
+      },
+      "readability": {
+        "lexical_word_count": 106,
+        "sentence_count": 6,
+        "mean_sentence_words": 17.667,
+        "max_sentence_words": 31,
+        "sentences_over_25_words": 1,
+        "estimated_syllable_count": 198,
+        "estimated_flesch_reading_ease": 30.877,
+        "estimated_flesch_kincaid_grade": 13.342,
+        "syllable_method": "english_vowel_group_heuristic_v1",
+        "contains_marburg": true
+      },
+      "generation_attempts": 1,
+      "length_adjusted": false,
+      "source_fragment_sentence_ids": [],
+      "claim_audit": {
+        "claim_count": 18,
+        "status_counts": {
+          "partial": 1,
+          "source_inconsistent": 0,
+          "supported": 17,
+          "unsupported": 0
+        },
+        "strict_supported_claim_rate": 0.9444444444444444,
+        "supported_claims_with_complete_generated_citations": 11,
+        "generated_citation_ids_unused_by_reviewed_claims": [
+          4,
+          29
+        ],
+        "claims": [
+          {
+            "claim": "Behring was German.",
+            "status": "supported",
+            "evidence_ids": [
+              1
+            ],
+            "claim_id": 1,
+            "evidence_sentences": [
+              "Emil von Behring (German: [ˈeːmiːl fɔn ˈbeːʁɪŋ] ; Emil Adolf von Behring: born Emil Adolf Behring; 15 March 1854 – 31 March 1917), was a German physiologist."
+            ],
+            "evidence_all_in_generated_citations": false
+          },
+          {
+            "claim": "Behring was a physiologist.",
+            "status": "supported",
+            "evidence_ids": [
+              1
+            ],
+            "claim_id": 2,
+            "evidence_sentences": [
+              "Emil von Behring (German: [ˈeːmiːl fɔn ˈbeːʁɪŋ] ; Emil Adolf von Behring: born Emil Adolf Behring; 15 March 1854 – 31 March 1917), was a German physiologist."
+            ],
+            "evidence_all_in_generated_citations": false
+          },
+          {
+            "claim": "Behring developed serum therapy against diphtheria.",
+            "status": "supported",
+            "evidence_ids": [
+              13,
+              15,
+              23
+            ],
+            "claim_id": 3,
+            "evidence_sentences": [
+              "In 1890 he published an article with Kitasato Shibasaburō reporting that they had developed \"antitoxins\" against both diphtheria and tetanus.",
+              "This process was called \"serum therapy\" at the time.",
+              "Behring won the first Nobel Prize in Physiology or Medicine in 1901 for the development of serum therapies against diphtheria."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Behring developed serum therapy against tetanus.",
+            "status": "supported",
+            "evidence_ids": [
+              13,
+              15,
+              17
+            ],
+            "claim_id": 4,
+            "evidence_sentences": [
+              "In 1890 he published an article with Kitasato Shibasaburō reporting that they had developed \"antitoxins\" against both diphtheria and tetanus.",
+              "This process was called \"serum therapy\" at the time.",
+              "These antitoxins could protect against and cure the diseases in non-immunized animals."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Behring was born in 1854.",
+            "status": "supported",
+            "evidence_ids": [
+              1
+            ],
+            "claim_id": 5,
+            "evidence_sentences": [
+              "Emil von Behring (German: [ˈeːmiːl fɔn ˈbeːʁɪŋ] ; Emil Adolf von Behring: born Emil Adolf Behring; 15 March 1854 – 31 March 1917), was a German physiologist."
+            ],
+            "evidence_all_in_generated_citations": false
+          },
+          {
+            "claim": "Behring studied medicine in Berlin.",
+            "status": "supported",
+            "evidence_ids": [
+              8
+            ],
+            "claim_id": 6,
+            "evidence_sentences": [
+              "Between 1874 and 1878, Emil von Behring studied medicine at the Kaiser Wilhelm Academy in Berlin, an institution established for the training of military physicians."
+            ],
+            "evidence_all_in_generated_citations": false
+          },
+          {
+            "claim": "Behring later worked with Robert Koch.",
+            "status": "supported",
+            "evidence_ids": [
+              12
+            ],
+            "claim_id": 7,
+            "evidence_sentences": [
+              "His skill and diligence attracted attention, leading to his transfer back to Prussia to work under Robert Koch, whose laboratory at the Imperial Health Office was becoming a center of pioneering bacteriological research."
+            ],
+            "evidence_all_in_generated_citations": false
+          },
+          {
+            "claim": "Behring and Kitasato Shibasaburō developed antitoxins in 1890.",
+            "status": "supported",
+            "evidence_ids": [
+              13
+            ],
+            "claim_id": 8,
+            "evidence_sentences": [
+              "In 1890 he published an article with Kitasato Shibasaburō reporting that they had developed \"antitoxins\" against both diphtheria and tetanus."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Injecting toxins into animals caused them to develop immunity and provided antitoxins from their serum.",
+            "status": "supported",
+            "evidence_ids": [
+              14
+            ],
+            "claim_id": 9,
+            "evidence_sentences": [
+              "They had injected diphtheria and tetanus toxins into guinea pigs, goats and horses; when these animals developed immunity, they derived antitoxins (now known to contain antibodies) from their serum."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Those antitoxins could cure diphtheria and tetanus.",
+            "status": "supported",
+            "evidence_ids": [
+              13,
+              17
+            ],
+            "claim_id": 10,
+            "evidence_sentences": [
+              "In 1890 he published an article with Kitasato Shibasaburō reporting that they had developed \"antitoxins\" against both diphtheria and tetanus.",
+              "These antitoxins could protect against and cure the diseases in non-immunized animals."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Successful human treatments began in 1894.",
+            "status": "supported",
+            "evidence_ids": [
+              18,
+              19
+            ],
+            "claim_id": 11,
+            "evidence_sentences": [
+              "In 1892 he started the first human trials of the diphtheria antitoxin, but they were unsuccessful.",
+              "Successful treatment started in 1894, after the production and quantification of antitoxin had been optimized."
+            ],
+            "evidence_all_in_generated_citations": false
+          },
+          {
+            "claim": "Antitoxin production was optimized before successful treatment.",
+            "status": "supported",
+            "evidence_ids": [
+              19
+            ],
+            "claim_id": 12,
+            "evidence_sentences": [
+              "Successful treatment started in 1894, after the production and quantification of antitoxin had been optimized."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Behring founded a company to produce antitoxins.",
+            "status": "supported",
+            "evidence_ids": [
+              25
+            ],
+            "claim_id": 13,
+            "evidence_sentences": [
+              "In 1904 he founded the Behringwerke in Marburg, a company to produce antitoxins and vaccines."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Behring became a professor at the University of Marburg.",
+            "status": "supported",
+            "evidence_ids": [
+              21
+            ],
+            "claim_id": 14,
+            "evidence_sentences": [
+              "By 1895 Behring became Professor of Hygienics within the Faculty of Medicine at the University of Marburg, a position held for the rest of his life."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Behring received the first Nobel Prize in Physiology or Medicine in 1901 for serum therapy.",
+            "status": "supported",
+            "evidence_ids": [
+              2,
+              23
+            ],
+            "claim_id": 15,
+            "evidence_sentences": [
+              "In 1901, he received the first Nobel Prize in Physiology or Medicine \"for his work on serum therapy, especially its application against diphtheria, by which he has opened a new road in the domain of medical science and thereby placed in the hands of the physician a victorious weapon against illness and deaths\".",
+              "Behring won the first Nobel Prize in Physiology or Medicine in 1901 for the development of serum therapies against diphtheria."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Behring was known as the saviour of children.",
+            "status": "supported",
+            "evidence_ids": [
+              3
+            ],
+            "claim_id": 16,
+            "evidence_sentences": [
+              "He was widely known as a \"saviour of children\", as diphtheria used to be a major cause of child death."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Diphtheria was a major cause of child death.",
+            "status": "supported",
+            "evidence_ids": [
+              3
+            ],
+            "claim_id": 17,
+            "evidence_sentences": [
+              "He was widely known as a \"saviour of children\", as diphtheria used to be a major cause of child death."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Receiving the Nobel Prize earned Behring the saviour of children nickname.",
+            "status": "partial",
+            "evidence_ids": [
+              2,
+              3
+            ],
+            "note": "The source supports the award and the nickname separately, but not an award-to-nickname causal relationship.",
+            "claim_id": 18,
+            "evidence_sentences": [
+              "In 1901, he received the first Nobel Prize in Physiology or Medicine \"for his work on serum therapy, especially its application against diphtheria, by which he has opened a new road in the domain of medical science and thereby placed in the hands of the physician a victorious weapon against illness and deaths\".",
+              "He was widely known as a \"saviour of children\", as diphtheria used to be a major cause of child death."
+            ],
+            "evidence_all_in_generated_citations": true
+          }
+        ],
+        "content_notes": [
+          "Physiologist, serum therapy, diphtheria, tetanus and antitoxin are dense unexplained medical terms.",
+          "Revolutionized medicine is treated as evaluative rhetoric rather than a separately scored factual claim.",
+          "The generated citations omit sentence 1 (identity and birth), sentence 8 (Berlin) and sentence 12 (Koch)."
+        ]
+      }
+    },
+    {
+      "slug": "Jacob_Grimm",
+      "name": "Jacob Grimm",
+      "summary": "Jacob Ludwig Karl Grimm (1785–1863) was a German author, linguist, and folklorist. He co-authored Grimms' Fairy Tales with his brother Wilhelm, collecting folktales from people and manuscripts. Together, they also published German Legends. Grimm formulated Grimm's law of linguistics and co-authored the monumental Deutsches Wörterbuch, a German language dictionary started in 1838. This dictionary remains a standard reference work today. He also published legal compilations like Weisthümer, studying rural German legal traditions. His work influenced the western world through his fairy tales and linguistic discoveries.",
+      "summary_text_sha256": "a1cf5649175c44e5dd0133919472ec3f3ee7ab9695bdf262274809032e220375",
+      "source_text_sha256": "c0ed2f660df3cb7d0109bd1fc0e3907cc9bf68bee18c39493e9908f5cf019cf7",
+      "source_revision_id": 1370547221,
+      "source_url": "https://en.wikipedia.org/w/index.php?oldid=1370547221",
+      "word_count": 85,
+      "word_range": [
+        60,
+        110
+      ],
+      "integrity": {
+        "valid": true,
+        "checks": {
+          "source_metadata_hash_matches_text": true,
+          "summary_source_hash_matches_text": true,
+          "source_revision_matches": true,
+          "schema_length_and_evidence_match": true
+        },
+        "errors": []
+      },
+      "readability": {
+        "lexical_word_count": 85,
+        "sentence_count": 7,
+        "mean_sentence_words": 12.143,
+        "max_sentence_words": 19,
+        "sentences_over_25_words": 0,
+        "estimated_syllable_count": 164,
+        "estimated_flesch_reading_ease": 31.282,
+        "estimated_flesch_kincaid_grade": 11.913,
+        "syllable_method": "english_vowel_group_heuristic_v1",
+        "contains_marburg": false
+      },
+      "generation_attempts": 2,
+      "length_adjusted": false,
+      "source_fragment_sentence_ids": [],
+      "claim_audit": {
+        "claim_count": 20,
+        "status_counts": {
+          "partial": 0,
+          "source_inconsistent": 0,
+          "supported": 19,
+          "unsupported": 1
+        },
+        "strict_supported_claim_rate": 0.95,
+        "supported_claims_with_complete_generated_citations": 19,
+        "generated_citation_ids_unused_by_reviewed_claims": [
+          23
+        ],
+        "claims": [
+          {
+            "claim": "Jacob Grimm was born in 1785.",
+            "status": "supported",
+            "evidence_ids": [
+              1
+            ],
+            "claim_id": 1,
+            "evidence_sentences": [
+              "Jacob Ludwig Karl Grimm (4 January 1785 – 20 September 1863), also known as Ludwig Karl, was a German author, linguist, philologist, jurist, and folklorist."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Jacob Grimm died in 1863.",
+            "status": "supported",
+            "evidence_ids": [
+              1
+            ],
+            "claim_id": 2,
+            "evidence_sentences": [
+              "Jacob Ludwig Karl Grimm (4 January 1785 – 20 September 1863), also known as Ludwig Karl, was a German author, linguist, philologist, jurist, and folklorist."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Jacob Grimm was German.",
+            "status": "supported",
+            "evidence_ids": [
+              1
+            ],
+            "claim_id": 3,
+            "evidence_sentences": [
+              "Jacob Ludwig Karl Grimm (4 January 1785 – 20 September 1863), also known as Ludwig Karl, was a German author, linguist, philologist, jurist, and folklorist."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Jacob Grimm was an author.",
+            "status": "supported",
+            "evidence_ids": [
+              1
+            ],
+            "claim_id": 4,
+            "evidence_sentences": [
+              "Jacob Ludwig Karl Grimm (4 January 1785 – 20 September 1863), also known as Ludwig Karl, was a German author, linguist, philologist, jurist, and folklorist."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Jacob Grimm was a linguist.",
+            "status": "supported",
+            "evidence_ids": [
+              1
+            ],
+            "claim_id": 5,
+            "evidence_sentences": [
+              "Jacob Ludwig Karl Grimm (4 January 1785 – 20 September 1863), also known as Ludwig Karl, was a German author, linguist, philologist, jurist, and folklorist."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Jacob Grimm was a folklorist.",
+            "status": "supported",
+            "evidence_ids": [
+              1
+            ],
+            "claim_id": 6,
+            "evidence_sentences": [
+              "Jacob Ludwig Karl Grimm (4 January 1785 – 20 September 1863), also known as Ludwig Karl, was a German author, linguist, philologist, jurist, and folklorist."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Jacob co-authored Grimms' Fairy Tales with Wilhelm.",
+            "status": "supported",
+            "evidence_ids": [
+              8
+            ],
+            "claim_id": 7,
+            "evidence_sentences": [
+              "He then later with his brother, Wilhelm Grimm, wrote Grimms' Fairy Tales."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Wilhelm was Jacob's brother.",
+            "status": "supported",
+            "evidence_ids": [
+              3
+            ],
+            "claim_id": 8,
+            "evidence_sentences": [
+              "He was the older brother of Wilhelm Grimm; together, they were the literary duo known as the Brothers Grimm."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "They collected folktales from people.",
+            "status": "supported",
+            "evidence_ids": [
+              25
+            ],
+            "claim_id": 9,
+            "evidence_sentences": [
+              "At the same time they collected all the folktales they could find, partly from the mouths of the people, partly from manuscripts and books, and published in 1812–1815 the first edition of those Kinder- und Hausmärchen (Children's and Household Tales), which has carried the name of the brothers Grimm into every household of the western world."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "They collected folktales from manuscripts.",
+            "status": "supported",
+            "evidence_ids": [
+              25
+            ],
+            "claim_id": 10,
+            "evidence_sentences": [
+              "At the same time they collected all the folktales they could find, partly from the mouths of the people, partly from manuscripts and books, and published in 1812–1815 the first edition of those Kinder- und Hausmärchen (Children's and Household Tales), which has carried the name of the brothers Grimm into every household of the western world."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "The brothers also published German Legends.",
+            "status": "supported",
+            "evidence_ids": [
+              24
+            ],
+            "claim_id": 11,
+            "evidence_sentences": [
+              "They published In 1816–1818 a collection of legends culled from diverse sources and published the two-volume Deutsche Sagen (German Legends)."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Jacob formulated Grimm's law of linguistics.",
+            "status": "supported",
+            "evidence_ids": [
+              2
+            ],
+            "claim_id": 12,
+            "evidence_sentences": [
+              "He formulated Grimm's law of linguistics, and was the co-author of the Deutsches Wörterbuch, the author of Deutsche Mythologie, and the editor of Grimms' Fairy Tales."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Jacob co-authored Deutsches Wörterbuch.",
+            "status": "supported",
+            "evidence_ids": [
+              2
+            ],
+            "claim_id": 13,
+            "evidence_sentences": [
+              "He formulated Grimm's law of linguistics, and was the co-author of the Deutsches Wörterbuch, the author of Deutsche Mythologie, and the editor of Grimms' Fairy Tales."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Deutsches Wörterbuch is a German-language dictionary.",
+            "status": "supported",
+            "evidence_ids": [
+              9
+            ],
+            "claim_id": 14,
+            "evidence_sentences": [
+              "Grimm's monumental dictionary of the German Language, the Deutsches Wörterbuch, was started in 1838 and first published in 1854."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "The dictionary was started in 1838.",
+            "status": "supported",
+            "evidence_ids": [
+              9
+            ],
+            "claim_id": 15,
+            "evidence_sentences": [
+              "Grimm's monumental dictionary of the German Language, the Deutsches Wörterbuch, was started in 1838 and first published in 1854."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "The dictionary remains a standard reference work.",
+            "status": "supported",
+            "evidence_ids": [
+              14
+            ],
+            "claim_id": 16,
+            "evidence_sentences": [
+              "At 33 volumes at some 330,000 headwords, it remains a standard work of reference to the present day."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Grimm published the legal compilation Weisthümer.",
+            "status": "supported",
+            "evidence_ids": [
+              31
+            ],
+            "claim_id": 17,
+            "evidence_sentences": [
+              "Grimm's Weisthümer (4 vol., 1840–63), a compilation of partially oral legal traditions from rural Germany, allows research of the development of written law in Northern Europe."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Weisthümer concerns rural German legal traditions.",
+            "status": "supported",
+            "evidence_ids": [
+              31
+            ],
+            "claim_id": 18,
+            "evidence_sentences": [
+              "Grimm's Weisthümer (4 vol., 1840–63), a compilation of partially oral legal traditions from rural Germany, allows research of the development of written law in Northern Europe."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "The fairy tales influenced the western world.",
+            "status": "supported",
+            "evidence_ids": [
+              25
+            ],
+            "claim_id": 19,
+            "evidence_sentences": [
+              "At the same time they collected all the folktales they could find, partly from the mouths of the people, partly from manuscripts and books, and published in 1812–1815 the first edition of those Kinder- und Hausmärchen (Children's and Household Tales), which has carried the name of the brothers Grimm into every household of the western world."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Grimm's linguistic discoveries influenced the western world.",
+            "status": "unsupported",
+            "evidence_ids": [
+              2,
+              18,
+              20
+            ],
+            "note": "The saved source describes linguistic discoveries but does not establish their western-world impact; sentence 25 supports the fairy-tale claim only.",
+            "claim_id": 20,
+            "evidence_sentences": [
+              "He formulated Grimm's law of linguistics, and was the co-author of the Deutsches Wörterbuch, the author of Deutsche Mythologie, and the editor of Grimms' Fairy Tales.",
+              "Yet even in this essay, Grimm showed that Minnesang and Meistergesang were really one form of poetry, of which they merely represented different stages of development, and also announced his important discovery of the invariable division of the Lied into three strophic parts.",
+              "In 1812 they published the two ancient fragments of the Hildebrandslied and the Weißenbrunner Gebet, Jacob having discovered what until then had never been suspected — namely the alliteration in these poems."
+            ],
+            "evidence_all_in_generated_citations": false
+          }
+        ],
+        "content_notes": [
+          "No Marburg connection is mentioned, although source sentences 6-7 describe it.",
+          "Linguist, folklorist, Grimm's law, Deutsches Wörterbuch and Weisthümer may need brief explanations.",
+          "The source selection contains bibliographic prose and abbreviation-induced sentence fragments near IDs 32-38."
+        ]
+      }
+    },
+    {
+      "slug": "Hannah_Arendt",
+      "name": "Hannah Arendt",
+      "summary": "Hannah Arendt (1906–1975) was a German and American historian and philosopher, one of the most influential political theorists of the twentieth century. Born to a Jewish family in Linden, she studied at the University of Marburg under Martin Heidegger, where she engaged in a romantic affair. She obtained her doctorate in philosophy at the University of Heidelberg in 1929, with a dissertation on Love and Saint Augustine. Her works cover topics like wealth, power, and totalitarianism. Arendt was briefly imprisoned by the Gestapo in 1933 for illegal research into antisemitism.",
+      "summary_text_sha256": "a9856203b33e9ed6966aa6b153a769faaa27b99332cdb563dd914a8f0c9032eb",
+      "source_text_sha256": "f8de1149301481392da9e4016d623ab8192ca681ebe9dfebfbc8dc1a89bf1f8f",
+      "source_revision_id": 1372496669,
+      "source_url": "https://en.wikipedia.org/w/index.php?oldid=1372496669",
+      "word_count": 90,
+      "word_range": [
+        60,
+        110
+      ],
+      "integrity": {
+        "valid": true,
+        "checks": {
+          "source_metadata_hash_matches_text": true,
+          "summary_source_hash_matches_text": true,
+          "source_revision_matches": true,
+          "schema_length_and_evidence_match": true
+        },
+        "errors": []
+      },
+      "readability": {
+        "lexical_word_count": 87,
+        "sentence_count": 5,
+        "mean_sentence_words": 17.4,
+        "max_sentence_words": 24,
+        "sentences_over_25_words": 0,
+        "estimated_syllable_count": 167,
+        "estimated_flesch_reading_ease": 26.781,
+        "estimated_flesch_kincaid_grade": 13.847,
+        "syllable_method": "english_vowel_group_heuristic_v1",
+        "contains_marburg": true
+      },
+      "generation_attempts": 1,
+      "length_adjusted": false,
+      "source_fragment_sentence_ids": [
+        11,
+        40
+      ],
+      "claim_audit": {
+        "claim_count": 19,
+        "status_counts": {
+          "partial": 0,
+          "source_inconsistent": 1,
+          "supported": 18,
+          "unsupported": 0
+        },
+        "strict_supported_claim_rate": 0.9473684210526315,
+        "supported_claims_with_complete_generated_citations": 17,
+        "generated_citation_ids_unused_by_reviewed_claims": [],
+        "claims": [
+          {
+            "claim": "Hannah Arendt was born in 1906.",
+            "status": "supported",
+            "evidence_ids": [
+              1
+            ],
+            "claim_id": 1,
+            "evidence_sentences": [
+              "Hannah Arendt (born Johanna Arendt; 14 October 1906 – 4 December 1975) was a German and American historian and philosopher."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Hannah Arendt died in 1975.",
+            "status": "supported",
+            "evidence_ids": [
+              1
+            ],
+            "claim_id": 2,
+            "evidence_sentences": [
+              "Hannah Arendt (born Johanna Arendt; 14 October 1906 – 4 December 1975) was a German and American historian and philosopher."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Arendt was German.",
+            "status": "supported",
+            "evidence_ids": [
+              1
+            ],
+            "claim_id": 3,
+            "evidence_sentences": [
+              "Hannah Arendt (born Johanna Arendt; 14 October 1906 – 4 December 1975) was a German and American historian and philosopher."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Arendt was American.",
+            "status": "supported",
+            "evidence_ids": [
+              1
+            ],
+            "claim_id": 4,
+            "evidence_sentences": [
+              "Hannah Arendt (born Johanna Arendt; 14 October 1906 – 4 December 1975) was a German and American historian and philosopher."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Arendt was a historian.",
+            "status": "supported",
+            "evidence_ids": [
+              1
+            ],
+            "claim_id": 5,
+            "evidence_sentences": [
+              "Hannah Arendt (born Johanna Arendt; 14 October 1906 – 4 December 1975) was a German and American historian and philosopher."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Arendt was a philosopher.",
+            "status": "supported",
+            "evidence_ids": [
+              1
+            ],
+            "claim_id": 6,
+            "evidence_sentences": [
+              "Hannah Arendt (born Johanna Arendt; 14 October 1906 – 4 December 1975) was a German and American historian and philosopher."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Arendt was an influential political theorist of the twentieth century.",
+            "status": "supported",
+            "evidence_ids": [
+              2
+            ],
+            "claim_id": 7,
+            "evidence_sentences": [
+              "She was one of the most influential political theorists of the twentieth century."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Arendt was born to a Jewish family.",
+            "status": "supported",
+            "evidence_ids": [
+              4
+            ],
+            "claim_id": 8,
+            "evidence_sentences": [
+              "Hannah Arendt was born to a Jewish family in Linden in 1906."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Arendt was born in Linden.",
+            "status": "supported",
+            "evidence_ids": [
+              4
+            ],
+            "claim_id": 9,
+            "evidence_sentences": [
+              "Hannah Arendt was born to a Jewish family in Linden in 1906."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Arendt studied at the University of Marburg under Martin Heidegger.",
+            "status": "supported",
+            "evidence_ids": [
+              7
+            ],
+            "claim_id": 10,
+            "evidence_sentences": [
+              "After completing secondary education in Berlin, Arendt studied at the University of Marburg under Martin Heidegger, with whom she engaged in a romantic affair that began while she was his student."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Arendt had a romantic affair with Heidegger while his student.",
+            "status": "supported",
+            "evidence_ids": [
+              7
+            ],
+            "claim_id": 11,
+            "evidence_sentences": [
+              "After completing secondary education in Berlin, Arendt studied at the University of Marburg under Martin Heidegger, with whom she engaged in a romantic affair that began while she was his student."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Arendt obtained a doctorate in philosophy at Heidelberg.",
+            "status": "supported",
+            "evidence_ids": [
+              8,
+              32,
+              33
+            ],
+            "claim_id": 12,
+            "evidence_sentences": [
+              "She obtained her doctorate in philosophy at the University of Heidelberg in 1929.",
+              "In 1926 she moved to the University of Heidelberg, completing her dissertation in 1928 under Karl Jaspers.",
+              "She received her Ph.D. summa cum laude that year."
+            ],
+            "evidence_all_in_generated_citations": false
+          },
+          {
+            "claim": "Arendt obtained her doctorate in 1929.",
+            "status": "source_inconsistent",
+            "evidence_ids": [
+              8,
+              32,
+              33
+            ],
+            "note": "Sentence 8 gives 1929, whereas sentences 32-33 say she completed the dissertation and received the Ph.D. in 1928. The saved input does not resolve this conflict.",
+            "claim_id": 13,
+            "evidence_sentences": [
+              "She obtained her doctorate in philosophy at the University of Heidelberg in 1929.",
+              "In 1926 she moved to the University of Heidelberg, completing her dissertation in 1928 under Karl Jaspers.",
+              "She received her Ph.D. summa cum laude that year."
+            ],
+            "evidence_all_in_generated_citations": false
+          },
+          {
+            "claim": "Her dissertation was on Love and Saint Augustine.",
+            "status": "supported",
+            "evidence_ids": [
+              9
+            ],
+            "claim_id": 14,
+            "evidence_sentences": [
+              "Her dissertation was entitled Love and Saint Augustine, and her supervisor was the existentialist philosopher Karl Jaspers."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Her works addressed wealth.",
+            "status": "supported",
+            "evidence_ids": [
+              3
+            ],
+            "claim_id": 15,
+            "evidence_sentences": [
+              "Her works cover a broad range of topics, but she is best known for those dealing with the nature of wealth, power, fame, and evil, as well as politics, direct democracy, authority, tradition, and totalitarianism."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Her works addressed power.",
+            "status": "supported",
+            "evidence_ids": [
+              3
+            ],
+            "claim_id": 16,
+            "evidence_sentences": [
+              "Her works cover a broad range of topics, but she is best known for those dealing with the nature of wealth, power, fame, and evil, as well as politics, direct democracy, authority, tradition, and totalitarianism."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Her works addressed totalitarianism.",
+            "status": "supported",
+            "evidence_ids": [
+              3
+            ],
+            "claim_id": 17,
+            "evidence_sentences": [
+              "Her works cover a broad range of topics, but she is best known for those dealing with the nature of wealth, power, fame, and evil, as well as politics, direct democracy, authority, tradition, and totalitarianism."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Arendt was briefly imprisoned by the Gestapo in 1933.",
+            "status": "supported",
+            "evidence_ids": [
+              10
+            ],
+            "claim_id": 18,
+            "evidence_sentences": [
+              "In 1933, Arendt was briefly imprisoned by the Gestapo for performing illegal research into antisemitism."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "The imprisonment was for illegal research into antisemitism.",
+            "status": "supported",
+            "evidence_ids": [
+              10
+            ],
+            "claim_id": 19,
+            "evidence_sentences": [
+              "In 1933, Arendt was briefly imprisoned by the Gestapo for performing illegal research into antisemitism."
+            ],
+            "evidence_all_in_generated_citations": true
+          }
+        ],
+        "content_notes": [
+          "The romantic affair is source-supported, but is not necessary for an educational achievement-focused biography for ages 10-14.",
+          "Totalitarianism, antisemitism and Gestapo are unexplained and need careful contextualization.",
+          "The saved source contains stand-alone N. and C. fragments; do not interpret those as substantive evidence."
+        ]
+      }
+    },
+    {
+      "slug": "Gertrud_von_Le_Fort",
+      "name": "Gertrud von Le Fort",
+      "summary": "Baroness Gertrud von Le Fort (1876–1971) was a German writer born in Minden, the daughter of a Prussian colonel. She studied in Heidelberg, Marburg, and Berlin before making her home in Bavaria. Her career began with editing Ernst Troeltsch's posthumous work in 1925, followed by her conversion to Roman Catholicism. She published over 20 books, including the novella The Song at the Scaffold, which inspired Georges Bernanos' Dialogues des Carmélites. This work formed the basis for Francis Poulenc's 1956 opera. Le Fort won the Gottfried-Keller Prize in 1952 and was nominated by Hermann Hesse for the Nobel Prize.",
+      "summary_text_sha256": "8886683a0a55d25e6f9963fe0b0cce8aa9785bc987b1d2a38d582cea6fbe128d",
+      "source_text_sha256": "fc16fa1b2b45707741033bb3cd1ae52511dfc3c5750455872d0f29b8c54b9d66",
+      "source_revision_id": 1364202199,
+      "source_url": "https://en.wikipedia.org/w/index.php?oldid=1364202199",
+      "word_count": 98,
+      "word_range": [
+        60,
+        110
+      ],
+      "integrity": {
+        "valid": true,
+        "checks": {
+          "source_metadata_hash_matches_text": true,
+          "summary_source_hash_matches_text": true,
+          "source_revision_matches": true,
+          "schema_length_and_evidence_match": true
+        },
+        "errors": []
+      },
+      "readability": {
+        "lexical_word_count": 94,
+        "sentence_count": 6,
+        "mean_sentence_words": 15.667,
+        "max_sentence_words": 19,
+        "sentences_over_25_words": 0,
+        "estimated_syllable_count": 158,
+        "estimated_flesch_reading_ease": 48.733,
+        "estimated_flesch_kincaid_grade": 10.354,
+        "syllable_method": "english_vowel_group_heuristic_v1",
+        "contains_marburg": true
+      },
+      "generation_attempts": 2,
+      "length_adjusted": true,
+      "source_fragment_sentence_ids": [],
+      "claim_audit": {
+        "claim_count": 19,
+        "status_counts": {
+          "partial": 0,
+          "source_inconsistent": 0,
+          "supported": 19,
+          "unsupported": 0
+        },
+        "strict_supported_claim_rate": 1.0,
+        "supported_claims_with_complete_generated_citations": 19,
+        "generated_citation_ids_unused_by_reviewed_claims": [
+          8,
+          10,
+          12,
+          22
+        ],
+        "claims": [
+          {
+            "claim": "Le Fort was a baroness.",
+            "status": "supported",
+            "evidence_ids": [
+              1
+            ],
+            "claim_id": 1,
+            "evidence_sentences": [
+              "Baroness Gertrud von Le Fort (born Gertrud Auguste Lina Elsbeth Mathilde Petrea Freiin von Le Fort; 11 October 1876 – 1 November 1971) was a German writer."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Le Fort was born in 1876.",
+            "status": "supported",
+            "evidence_ids": [
+              1
+            ],
+            "claim_id": 2,
+            "evidence_sentences": [
+              "Baroness Gertrud von Le Fort (born Gertrud Auguste Lina Elsbeth Mathilde Petrea Freiin von Le Fort; 11 October 1876 – 1 November 1971) was a German writer."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Le Fort died in 1971.",
+            "status": "supported",
+            "evidence_ids": [
+              1
+            ],
+            "claim_id": 3,
+            "evidence_sentences": [
+              "Baroness Gertrud von Le Fort (born Gertrud Auguste Lina Elsbeth Mathilde Petrea Freiin von Le Fort; 11 October 1876 – 1 November 1971) was a German writer."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Le Fort was German.",
+            "status": "supported",
+            "evidence_ids": [
+              1
+            ],
+            "claim_id": 4,
+            "evidence_sentences": [
+              "Baroness Gertrud von Le Fort (born Gertrud Auguste Lina Elsbeth Mathilde Petrea Freiin von Le Fort; 11 October 1876 – 1 November 1971) was a German writer."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Le Fort was a writer.",
+            "status": "supported",
+            "evidence_ids": [
+              1
+            ],
+            "claim_id": 5,
+            "evidence_sentences": [
+              "Baroness Gertrud von Le Fort (born Gertrud Auguste Lina Elsbeth Mathilde Petrea Freiin von Le Fort; 11 October 1876 – 1 November 1971) was a German writer."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Le Fort was born in Minden.",
+            "status": "supported",
+            "evidence_ids": [
+              2
+            ],
+            "claim_id": 6,
+            "evidence_sentences": [
+              "Le Fort was born in Minden, in the former Province of Westphalia, then the Kingdom of Prussia within the German Empire."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Le Fort was the daughter of a Prussian colonel.",
+            "status": "supported",
+            "evidence_ids": [
+              3
+            ],
+            "claim_id": 7,
+            "evidence_sentences": [
+              "She was the daughter of a colonel in the Prussian Army, who was of Swiss Huguenot descent."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Le Fort studied at Heidelberg.",
+            "status": "supported",
+            "evidence_ids": [
+              4
+            ],
+            "claim_id": 8,
+            "evidence_sentences": [
+              "She was educated as a young girl in Hildesheim, and went on to study at universities at Heidelberg, Marburg and Berlin."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Le Fort studied at Marburg.",
+            "status": "supported",
+            "evidence_ids": [
+              4
+            ],
+            "claim_id": 9,
+            "evidence_sentences": [
+              "She was educated as a young girl in Hildesheim, and went on to study at universities at Heidelberg, Marburg and Berlin."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Le Fort studied at Berlin.",
+            "status": "supported",
+            "evidence_ids": [
+              4
+            ],
+            "claim_id": 10,
+            "evidence_sentences": [
+              "She was educated as a young girl in Hildesheim, and went on to study at universities at Heidelberg, Marburg and Berlin."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Le Fort later made her home in Bavaria.",
+            "status": "supported",
+            "evidence_ids": [
+              4,
+              5
+            ],
+            "claim_id": 11,
+            "evidence_sentences": [
+              "She was educated as a young girl in Hildesheim, and went on to study at universities at Heidelberg, Marburg and Berlin.",
+              "She made her home in Bavaria in 1918, living in Baierbrunn until 1939."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Her main writing career began by editing Troeltsch's posthumous work published in 1925.",
+            "status": "supported",
+            "evidence_ids": [
+              6
+            ],
+            "claim_id": 12,
+            "evidence_sentences": [
+              "Despite publishing some minor works previously, Le Fort's writing career really began with the publication in 1925 of the posthumous work Glaubenslehre by her mentor, Ernst Troeltsch, a major scholar in the field of the philosophy of religion, which she had edited."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "She converted to Roman Catholicism after that publication.",
+            "status": "supported",
+            "evidence_ids": [
+              7
+            ],
+            "claim_id": 13,
+            "evidence_sentences": [
+              "She converted to Roman Catholicism the following year."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "She published over 20 books.",
+            "status": "supported",
+            "evidence_ids": [
+              15
+            ],
+            "claim_id": 14,
+            "evidence_sentences": [
+              "Le Fort went on to publish over 20 books, comprising poems, novels and short stories."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "She wrote The Song at the Scaffold.",
+            "status": "supported",
+            "evidence_ids": [
+              9
+            ],
+            "claim_id": 15,
+            "evidence_sentences": [
+              "In 1931, Le Fort published the novella, The Song at the Scaffold (German: Die Letzte am Schafott), based on the 1794 execution of the Carmelite Martyrs of Compiègne."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Her novella inspired Bernanos' Dialogues des Carmélites.",
+            "status": "supported",
+            "evidence_ids": [
+              11,
+              13
+            ],
+            "claim_id": 16,
+            "evidence_sentences": [
+              "In 1947, Georges Bernanos wrote film dialogue to a proposed cinema scenario by Philippe Agostini based on Le Fort's novella, but the screenplay was not filmed at the time.",
+              "Le Fort requested that Bernanos' work be titled differently from her own novella, and Beguin chose the new title Dialogues des Carmélites."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Bernanos' work formed the basis of Poulenc's 1956 opera.",
+            "status": "supported",
+            "evidence_ids": [
+              14
+            ],
+            "claim_id": 17,
+            "evidence_sentences": [
+              "This formed the basic for the opera by Francis Poulenc from 1956."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Le Fort won the Gottfried-Keller Prize in 1952.",
+            "status": "supported",
+            "evidence_ids": [
+              19
+            ],
+            "claim_id": 18,
+            "evidence_sentences": [
+              "In 1952, Le Fort won the Gottfried-Keller Prize."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Hermann Hesse nominated Le Fort for the Nobel Prize.",
+            "status": "supported",
+            "evidence_ids": [
+              18
+            ],
+            "claim_id": 19,
+            "evidence_sentences": [
+              "She was nominated by Hermann Hesse for the Nobel Prize in Literature, and was granted an honorary Doctorate of Theology for her contributions to the issue of faith in her works."
+            ],
+            "evidence_all_in_generated_citations": true
+          }
+        ],
+        "content_notes": [
+          "All reviewed claims are supported by the saved source, but this is not independent verification of Wikipedia's statements.",
+          "The opera adaptation chain and foreign titles may be difficult for younger readers.",
+          "The saved summary was recovered by retaining an unchanged complete-sentence prefix; the frozen experiment should retain that length-adjustment metadata."
+        ]
+      }
+    },
+    {
+      "slug": "Alfred_Wegener",
+      "name": "Alfred Wegener",
+      "summary": "Alfred Wegener (1880–1930) was a German scientist who pioneered polar research and meteorology. He proposed the continental drift hypothesis in 1912, suggesting continents slowly move across Earth. His work later supported plate tectonics. Wegener led expeditions to Greenland, where he and his brother pioneered weather balloon use. He died in 1930 during a polar expedition, buried in a mausoleum in the ice. His ability to explain complex science made him a valued lecturer. He published nearly 20 papers before his death, exploring new scientific frontiers.",
+      "summary_text_sha256": "4c597c7c83a0a2cfc5484fa5a306f3426259b6ef65e0ff02d1d40e4bcb851a33",
+      "source_text_sha256": "20fe1c93248577014146a6345b45b32c022d8436aad4fb4610a6181f7d74b8ea",
+      "source_revision_id": 1372833004,
+      "source_url": "https://en.wikipedia.org/w/index.php?oldid=1372833004",
+      "word_count": 85,
+      "word_range": [
+        60,
+        110
+      ],
+      "integrity": {
+        "valid": true,
+        "checks": {
+          "source_metadata_hash_matches_text": true,
+          "summary_source_hash_matches_text": true,
+          "source_revision_matches": true,
+          "schema_length_and_evidence_match": true
+        },
+        "errors": []
+      },
+      "readability": {
+        "lexical_word_count": 81,
+        "sentence_count": 7,
+        "mean_sentence_words": 11.571,
+        "max_sentence_words": 14,
+        "sentences_over_25_words": 0,
+        "estimated_syllable_count": 150,
+        "estimated_flesch_reading_ease": 38.423,
+        "estimated_flesch_kincaid_grade": 10.775,
+        "syllable_method": "english_vowel_group_heuristic_v1",
+        "contains_marburg": false
+      },
+      "generation_attempts": 1,
+      "length_adjusted": false,
+      "source_fragment_sentence_ids": [],
+      "claim_audit": {
+        "claim_count": 18,
+        "status_counts": {
+          "partial": 2,
+          "source_inconsistent": 0,
+          "supported": 15,
+          "unsupported": 1
+        },
+        "strict_supported_claim_rate": 0.8333333333333334,
+        "supported_claims_with_complete_generated_citations": 15,
+        "generated_citation_ids_unused_by_reviewed_claims": [
+          5,
+          9,
+          10,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          21,
+          22,
+          23,
+          25,
+          30,
+          31,
+          32,
+          33,
+          34,
+          36
+        ],
+        "claims": [
+          {
+            "claim": "Wegener was born in 1880.",
+            "status": "supported",
+            "evidence_ids": [
+              1
+            ],
+            "claim_id": 1,
+            "evidence_sentences": [
+              "Alfred Lothar Wegener (/ˈveɪɡənər/; German: [ˈʔalfʁeːt ˈveːɡənɐ]; 1 November 1880 – November 1930) was a German climatologist, geologist, geophysicist, meteorologist, and polar researcher."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Wegener died in 1930.",
+            "status": "supported",
+            "evidence_ids": [
+              1
+            ],
+            "claim_id": 2,
+            "evidence_sentences": [
+              "Alfred Lothar Wegener (/ˈveɪɡənər/; German: [ˈʔalfʁeːt ˈveːɡənɐ]; 1 November 1880 – November 1930) was a German climatologist, geologist, geophysicist, meteorologist, and polar researcher."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Wegener was German.",
+            "status": "supported",
+            "evidence_ids": [
+              1
+            ],
+            "claim_id": 3,
+            "evidence_sentences": [
+              "Alfred Lothar Wegener (/ˈveɪɡənər/; German: [ˈʔalfʁeːt ˈveːɡənɐ]; 1 November 1880 – November 1930) was a German climatologist, geologist, geophysicist, meteorologist, and polar researcher."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Wegener was a scientist.",
+            "status": "supported",
+            "evidence_ids": [
+              1
+            ],
+            "claim_id": 4,
+            "evidence_sentences": [
+              "Alfred Lothar Wegener (/ˈveɪɡənər/; German: [ˈʔalfʁeːt ˈveːɡənɐ]; 1 November 1880 – November 1930) was a German climatologist, geologist, geophysicist, meteorologist, and polar researcher."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Wegener pioneered polar research.",
+            "status": "supported",
+            "evidence_ids": [
+              2
+            ],
+            "claim_id": 5,
+            "evidence_sentences": [
+              "During his lifetime he was primarily known for his achievements in meteorology and as a pioneer of polar research, but today he is most remembered as the originator of the continental drift hypothesis by suggesting in 1912 that the continents are slowly drifting around the Earth (German: Kontinentalverschiebung)."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Wegener pioneered meteorology.",
+            "status": "partial",
+            "evidence_ids": [
+              1,
+              2
+            ],
+            "note": "The source calls him a pioneer of polar research and credits achievements in meteorology; it does not make the same pioneering claim for meteorology.",
+            "claim_id": 6,
+            "evidence_sentences": [
+              "Alfred Lothar Wegener (/ˈveɪɡənər/; German: [ˈʔalfʁeːt ˈveːɡənɐ]; 1 November 1880 – November 1930) was a German climatologist, geologist, geophysicist, meteorologist, and polar researcher.",
+              "During his lifetime he was primarily known for his achievements in meteorology and as a pioneer of polar research, but today he is most remembered as the originator of the continental drift hypothesis by suggesting in 1912 that the continents are slowly drifting around the Earth (German: Kontinentalverschiebung)."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Wegener proposed continental drift in 1912.",
+            "status": "supported",
+            "evidence_ids": [
+              2,
+              35
+            ],
+            "claim_id": 7,
+            "evidence_sentences": [
+              "During his lifetime he was primarily known for his achievements in meteorology and as a pioneer of polar research, but today he is most remembered as the originator of the continental drift hypothesis by suggesting in 1912 that the continents are slowly drifting around the Earth (German: Kontinentalverschiebung).",
+              "He presented his continental drift hypothesis on 6 January 1912."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Continental drift proposes that continents slowly move across Earth.",
+            "status": "supported",
+            "evidence_ids": [
+              2
+            ],
+            "claim_id": 8,
+            "evidence_sentences": [
+              "During his lifetime he was primarily known for his achievements in meteorology and as a pioneer of polar research, but today he is most remembered as the originator of the continental drift hypothesis by suggesting in 1912 that the continents are slowly drifting around the Earth (German: Kontinentalverschiebung)."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "His hypothesis later provided a basis for plate tectonics.",
+            "status": "supported",
+            "evidence_ids": [
+              3
+            ],
+            "claim_id": 9,
+            "evidence_sentences": [
+              "His hypothesis was not accepted by mainstream geology until the 1960s, when numerous discoveries such as palaeomagnetism provided strong support for continental drift, and thereby a substantial basis for today's model of plate tectonics."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Wegener led Greenland expeditions.",
+            "status": "supported",
+            "evidence_ids": [
+              4,
+              29
+            ],
+            "claim_id": 10,
+            "evidence_sentences": [
+              "Wegener was involved in several expeditions to Greenland to study polar air circulation before the existence of the jet stream was accepted.",
+              "Kurt Wegener took over the expedition's leadership in July, according to the prearranged plan for such an eventuality."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Wegener and his brother pioneered weather balloon use.",
+            "status": "supported",
+            "evidence_ids": [
+              7,
+              8
+            ],
+            "claim_id": 11,
+            "evidence_sentences": [
+              "He worked there with his brother Kurt, who was likewise a scientist with an interest in meteorology and polar research.",
+              "The two pioneered the use of weather balloons to track air masses."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "They pioneered weather balloon use in Greenland.",
+            "status": "unsupported",
+            "evidence_ids": [
+              6,
+              7,
+              8
+            ],
+            "note": "The source locates the brothers' balloon work at the Lindenberg observatory near Beeskow, not Greenland. The summary conflates separate episodes.",
+            "claim_id": 12,
+            "evidence_sentences": [
+              "In 1905 Wegener became an assistant at the Aeronautisches Observatorium Lindenberg near Beeskow.",
+              "He worked there with his brother Kurt, who was likewise a scientist with an interest in meteorology and polar research.",
+              "The two pioneered the use of weather balloons to track air masses."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Wegener died during a polar expedition in 1930.",
+            "status": "supported",
+            "evidence_ids": [
+              1,
+              24,
+              26,
+              28
+            ],
+            "claim_id": 13,
+            "evidence_sentences": [
+              "Alfred Lothar Wegener (/ˈveɪɡənər/; German: [ˈʔalfʁeːt ˈveːɡənɐ]; 1 November 1880 – November 1930) was a German climatologist, geologist, geophysicist, meteorologist, and polar researcher.",
+              "Wegener died in his tent around 90 miles from Eismitte and was hastily buried with his skis stuck upright in the snow.",
+              "Six months later, on 12 May 1931, Wegener's skis were discovered.",
+              "Wegener had been 50 years of age and a heavy smoker, and it was believed that he had died of heart failure brought on by overexertion."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Wegener was buried in a mausoleum in the ice.",
+            "status": "supported",
+            "evidence_ids": [
+              27
+            ],
+            "claim_id": 14,
+            "evidence_sentences": [
+              "Expedition members built a pyramid-shaped mausoleum in the ice and snow, and Alfred Wegener's body was laid to rest."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Wegener was a valued lecturer.",
+            "status": "supported",
+            "evidence_ids": [
+              11,
+              12
+            ],
+            "claim_id": 15,
+            "evidence_sentences": [
+              "After his return in 1908 and until World War I, Wegener was a lecturer in meteorology, applied astronomy and cosmic physics at the University of Marburg.",
+              "His students and colleagues in Marburg particularly valued his ability to clearly and understandably explain even complex topics and current research findings without sacrificing precision."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "His ability to explain complex science was valued.",
+            "status": "supported",
+            "evidence_ids": [
+              12
+            ],
+            "claim_id": 16,
+            "evidence_sentences": [
+              "His students and colleagues in Marburg particularly valued his ability to clearly and understandably explain even complex topics and current research findings without sacrificing precision."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Wegener published nearly 20 papers before his death.",
+            "status": "partial",
+            "evidence_ids": [
+              20
+            ],
+            "note": "The source says almost 20 additional papers by the end of the war. Omitting additional and the period can suggest an incorrect lifetime total.",
+            "claim_id": 17,
+            "evidence_sentences": [
+              "By the end of the war Wegener had published almost 20 additional meteorological and geophysical papers in which he repeatedly embarked for new scientific frontiers."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Those papers explored new scientific frontiers.",
+            "status": "supported",
+            "evidence_ids": [
+              20
+            ],
+            "claim_id": 18,
+            "evidence_sentences": [
+              "By the end of the war Wegener had published almost 20 additional meteorological and geophysical papers in which he repeatedly embarked for new scientific frontiers."
+            ],
+            "evidence_all_in_generated_citations": true
+          }
+        ],
+        "content_notes": [
+          "No Marburg connection is mentioned, although source sentences 11-15 describe it.",
+          "All 36 source sentence IDs were cited, including irrelevant family details; valid IDs alone do not demonstrate precise grounding.",
+          "Meteorology, continental drift and plate tectonics need accessible definitions."
+        ]
+      }
+    },
+    {
+      "slug": "Boris_Pasternak",
+      "name": "Boris Pasternak",
+      "summary": "Boris Pasternak (1890–1960) was a Russian poet, novelist, and translator who began composing at age 13. He studied philosophy in Germany before returning to Russia to join the Futurist group. His first book, My Sister, Life, revolutionized Russian poetry in 1922. He wrote the famous novel Doctor Zhivago, which was smuggled out of the USSR and published in 1957. Pasternak won the 1958 Nobel Prize in Literature but declined it due to Soviet pressure. His son eventually accepted the award in 1989. Pasternak also translated works by Shakespeare and Goethe, remaining popular with Russian audiences.",
+      "summary_text_sha256": "1fc8c6177c6896dfe5590821f2f6f5127fdfec23b2c520a97f48cd964b6cbcb0",
+      "source_text_sha256": "03e23b00818d09edc10629c035fc9a300fdb40ae4f24667a7594d346be0c25c5",
+      "source_revision_id": 1372555189,
+      "source_url": "https://en.wikipedia.org/w/index.php?oldid=1372555189",
+      "word_count": 95,
+      "word_range": [
+        60,
+        110
+      ],
+      "integrity": {
+        "valid": true,
+        "checks": {
+          "source_metadata_hash_matches_text": true,
+          "summary_source_hash_matches_text": true,
+          "source_revision_matches": true,
+          "schema_length_and_evidence_match": true
+        },
+        "errors": []
+      },
+      "readability": {
+        "lexical_word_count": 89,
+        "sentence_count": 7,
+        "mean_sentence_words": 12.714,
+        "max_sentence_words": 17,
+        "sentences_over_25_words": 0,
+        "estimated_syllable_count": 158,
+        "estimated_flesch_reading_ease": 43.741,
+        "estimated_flesch_kincaid_grade": 10.317,
+        "syllable_method": "english_vowel_group_heuristic_v1",
+        "contains_marburg": false
+      },
+      "generation_attempts": 1,
+      "length_adjusted": false,
+      "source_fragment_sentence_ids": [],
+      "claim_audit": {
+        "claim_count": 20,
+        "status_counts": {
+          "partial": 0,
+          "source_inconsistent": 1,
+          "supported": 19,
+          "unsupported": 0
+        },
+        "strict_supported_claim_rate": 0.95,
+        "supported_claims_with_complete_generated_citations": 19,
+        "generated_citation_ids_unused_by_reviewed_claims": [
+          9,
+          10,
+          11,
+          25,
+          26,
+          30,
+          31,
+          32,
+          33,
+          34,
+          35,
+          37
+        ],
+        "claims": [
+          {
+            "claim": "Pasternak was born in 1890.",
+            "status": "supported",
+            "evidence_ids": [
+              1,
+              2
+            ],
+            "claim_id": 1,
+            "evidence_sentences": [
+              "Boris Leonidovich Pasternak (10 February [O.S.",
+              "29 January] 1890 – 30 May 1960) was a Russian and Soviet poet, novelist, and literary translator."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Pasternak died in 1960.",
+            "status": "supported",
+            "evidence_ids": [
+              2
+            ],
+            "claim_id": 2,
+            "evidence_sentences": [
+              "29 January] 1890 – 30 May 1960) was a Russian and Soviet poet, novelist, and literary translator."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Pasternak was Russian.",
+            "status": "supported",
+            "evidence_ids": [
+              2
+            ],
+            "claim_id": 3,
+            "evidence_sentences": [
+              "29 January] 1890 – 30 May 1960) was a Russian and Soviet poet, novelist, and literary translator."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Pasternak was a poet.",
+            "status": "supported",
+            "evidence_ids": [
+              2
+            ],
+            "claim_id": 4,
+            "evidence_sentences": [
+              "29 January] 1890 – 30 May 1960) was a Russian and Soviet poet, novelist, and literary translator."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Pasternak was a novelist.",
+            "status": "supported",
+            "evidence_ids": [
+              2
+            ],
+            "claim_id": 5,
+            "evidence_sentences": [
+              "29 January] 1890 – 30 May 1960) was a Russian and Soviet poet, novelist, and literary translator."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Pasternak was a translator.",
+            "status": "supported",
+            "evidence_ids": [
+              2
+            ],
+            "claim_id": 6,
+            "evidence_sentences": [
+              "29 January] 1890 – 30 May 1960) was a Russian and Soviet poet, novelist, and literary translator."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Pasternak began composing at age 13.",
+            "status": "supported",
+            "evidence_ids": [
+              36
+            ],
+            "claim_id": 7,
+            "evidence_sentences": [
+              "Pasternak began to compose at the age of 13."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Pasternak studied philosophy in Germany.",
+            "status": "supported",
+            "evidence_ids": [
+              12
+            ],
+            "claim_id": 8,
+            "evidence_sentences": [
+              "In 1910, he abruptly left for the University of Marburg in Germany, where he studied under neo-Kantian philosophers Hermann Cohen, Nicolai Hartmann, and Paul Natorp."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "He returned to Russia and joined a Futurist group.",
+            "status": "supported",
+            "evidence_ids": [
+              24
+            ],
+            "claim_id": 9,
+            "evidence_sentences": [
+              "She turned him down and he told of his love and rejection in the poem \"Marburg\" (1917): Around this time, when he was back in Russia, he joined the Russian Futurist group Centrifuge (Tsentrifuga) as a pianist; poetry was still only a hobby for him at that time."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "My Sister, Life was Pasternak's first book.",
+            "status": "source_inconsistent",
+            "evidence_ids": [
+              3,
+              28,
+              38
+            ],
+            "note": "The lead calls this his first book of poems, but sentences 28 and 38 describe earlier books and a first publication in 1914. The saved source is inconsistent.",
+            "claim_id": 10,
+            "evidence_sentences": [
+              "Composed in 1917, Pasternak's first book of poems, My Sister, Life, was published in Berlin in 1922 and soon became an important collection in the Russian language.",
+              "Pasternak's first and second books of poetry were published shortly after these events.",
+              "Four years later he returned to Moscow, having finally decided on a career in literature, publishing his first book of poems, influenced by Aleksandr Blok and the Russian Futurists, the same year."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "My Sister, Life revolutionized Russian poetry in 1922.",
+            "status": "supported",
+            "evidence_ids": [
+              29
+            ],
+            "claim_id": 11,
+            "evidence_sentences": [
+              "When it finally was published in 1922, Pasternak's My Sister, Life revolutionised Russian poetry."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Pasternak wrote Doctor Zhivago.",
+            "status": "supported",
+            "evidence_ids": [
+              5
+            ],
+            "claim_id": 12,
+            "evidence_sentences": [
+              "Pasternak is the author of Doctor Zhivago (1957), a novel that takes place between the Russian Revolution of 1905 and the Second World War."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Doctor Zhivago was smuggled out of the USSR.",
+            "status": "supported",
+            "evidence_ids": [
+              6
+            ],
+            "claim_id": 13,
+            "evidence_sentences": [
+              "Doctor Zhivago was rejected for publication in the USSR, but the manuscript was smuggled to Italy and was first published there in 1957, as part of a CIA operation to undermine the Soviet Union in the eyes of its citizens."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Doctor Zhivago was published in 1957.",
+            "status": "supported",
+            "evidence_ids": [
+              6
+            ],
+            "claim_id": 14,
+            "evidence_sentences": [
+              "Doctor Zhivago was rejected for publication in the USSR, but the manuscript was smuggled to Italy and was first published there in 1957, as part of a CIA operation to undermine the Soviet Union in the eyes of its citizens."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Pasternak received the 1958 Nobel Prize in Literature.",
+            "status": "supported",
+            "evidence_ids": [
+              7
+            ],
+            "claim_id": 15,
+            "evidence_sentences": [
+              "Pasternak was awarded the 1958 Nobel Prize in Literature, an event that enraged the Communist Party of the Soviet Union, which forced him to decline the prize."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Pasternak declined the prize due to Soviet pressure.",
+            "status": "supported",
+            "evidence_ids": [
+              7
+            ],
+            "claim_id": 16,
+            "evidence_sentences": [
+              "Pasternak was awarded the 1958 Nobel Prize in Literature, an event that enraged the Communist Party of the Soviet Union, which forced him to decline the prize."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Pasternak's son accepted the award in 1989.",
+            "status": "supported",
+            "evidence_ids": [
+              8
+            ],
+            "claim_id": 17,
+            "evidence_sentences": [
+              "In 1989, Pasternak's son Yevgeny finally accepted the award on his father's behalf."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Pasternak translated Shakespeare.",
+            "status": "supported",
+            "evidence_ids": [
+              4
+            ],
+            "claim_id": 18,
+            "evidence_sentences": [
+              "Pasternak's translations of stage plays by Goethe, Schiller, Calderón de la Barca and Shakespeare remain very popular with Russian audiences."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "Pasternak translated Goethe.",
+            "status": "supported",
+            "evidence_ids": [
+              4
+            ],
+            "claim_id": 19,
+            "evidence_sentences": [
+              "Pasternak's translations of stage plays by Goethe, Schiller, Calderón de la Barca and Shakespeare remain very popular with Russian audiences."
+            ],
+            "evidence_all_in_generated_citations": true
+          },
+          {
+            "claim": "His translations remained popular with Russian audiences.",
+            "status": "supported",
+            "evidence_ids": [
+              4
+            ],
+            "claim_id": 20,
+            "evidence_sentences": [
+              "Pasternak's translations of stage plays by Goethe, Schiller, Calderón de la Barca and Shakespeare remain very popular with Russian audiences."
+            ],
+            "evidence_all_in_generated_citations": true
+          }
+        ],
+        "content_notes": [
+          "No Marburg connection is named, although source sentences 12 and 37 describe it.",
+          "Composing at age 13 refers to music in the saved source context; readers could wrongly interpret it as composing poems.",
+          "Futurist and USSR are unexplained.",
+          "Source sentence 1 is an abbreviation-induced fragment, and the saved Marburg chronology requires care."
+        ]
+      }
+    }
+  ]
+}

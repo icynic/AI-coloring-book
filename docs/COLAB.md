@@ -193,6 +193,107 @@ original `requested_word_range`; newly generated biographies record the new
 range. Do not describe all samples as generated with an identical prompt or
 as satisfying the original 80-word minimum unless that is actually true.
 
+### Recover a complete answer that slightly exceeds the maximum
+
+Generation now has a deterministic postprocessing step for moderate overshoots
+(at most 25% over the maximum). It keeps the longest unchanged prefix ending at
+a conservative English sentence boundary, provided the result still meets the
+minimum. It never cuts at an arbitrary word count, adds facts, pads short text,
+or relaxes JSON/evidence validation. Ambiguous boundaries and answers that
+cannot fit this way still require a model revision or fail explicitly.
+
+The original model response and removed tail are preserved in the summary's
+`length_adjustment`. Deleting tail sentences can omit useful information; review
+the resulting biography, and report this postprocessing in the evaluation.
+Evidence IDs are retained as a conservative superset, not remapped to invented
+per-sentence citations. Wikipedia source sentence segmentation is unchanged.
+
+Repair also tries the **last** logged failed answer before loading Qwen. Its
+subject, revision and source text hash must match. Older logs without explicit
+context additionally require a matching error and timestamp within the saved
+repair run. Malformed/truncated JSON is never promoted. Recovery records the
+failure-log hash and provenance check used; the original failure file is kept.
+
+To require recovery with no network or model inference, locally or in Colab:
+
+```bash
+python main.py --repair-summaries --offline-repair --output-dir output/evaluation_flux_t4
+```
+
+Use the Drive output path in Colab. This mode fails rather than loading Qwen if
+no usable saved answer exists. Without `--offline-repair`, normal repair can
+regenerate any unresolved biographies. Do not combine offline repair with source
+refresh. Already-valid summaries and all FLUX images remain unchanged.
+
+## Source-grounded checking and revision in a separate prototype
+
+After syncing `Summarizer.py`, `summary_validation.py`, `summary_review.py`,
+`main.py` and `refine_biographies.py`, run this cell **from the repository
+directory**, with the existing dependencies and Drive mounted:
+
+```python
+import subprocess, sys
+subprocess.run([
+    sys.executable, '-u', 'refine_biographies.py',
+    '--source-run', '/content/drive/MyDrive/AIColoringBook/evaluation_flux_t4',
+    '--output-dir', '/content/drive/MyDrive/AIColoringBook/final_refined_t4',
+], check=True)
+```
+
+The source run is read-only. The derived directory must be empty on its first
+run and must not contain, or be inside, the source run. This command copies
+selected sources, biographies, images and available generation metadata, not
+old PDFs or backups. `original_summaries/` preserves the input biographies;
+`refinement_origin.json` binds the source manifest and copied inputs by hash.
+Qwen settings, target age and word range are inherited from the source manifest
+(60-110 words for the current eight-person run). It does not fetch Wikipedia,
+load FLUX, or regenerate images. Source metadata and generation metadata retain
+their original paths as provenance; repair resolves generated images relative
+to the derived directory.
+
+Qwen is loaded once. Each review/editor request uses a fresh chat, thinking
+disabled, with the full numbered saved source. The checker covers each biography
+sentence and checks all factual details in it, quoting source excerpts. The four
+verdicts are `supported`, `partial`, `unsupported`, and `source_conflict`.
+Feedback also checks essential technical language and unnecessary personal detail.
+The program rejects missing sentence coverage, invalid IDs, quotes not found in
+the referenced sentence, and conflicts lacking two different source IDs. A
+Marburg keyword in the source additionally requires Marburg in the biography;
+the model checks the actual relation. This keyword rule is not a relation extractor.
+
+Only an all-supported review with no editorial issues passes. There are at most
+two content revisions, each followed by a new review; disputed source facts should
+be omitted rather than resolved from model memory. Review JSON and revision JSON
+each allow two format/validation attempts. Review token budgets are 2048/4096;
+revision budgets are 1024/2048. Moderate length overshoots can still use the existing
+complete-sentence-prefix policy, but the resulting text is reviewed again.
+
+The derived summary's `summary_review` stores the initial draft, raw verification
+and revision outputs, quotes, verdicts, reasons, timing, policy, and final text/source
+hashes. Final citations are rebuilt from the accepted review. Failed attempts stay
+in `summary_failures/`; no combined PDF is published if any person remains unresolved.
+Inspect `repair_manifest.json` for per-person failures. A rerun of the same command
+reuses accepted reviews and retries unresolved people; changed frozen inputs require
+a new output directory. This is not a guarantee that a retry will succeed.
+
+For a local read-only input preflight, without loading either model:
+
+```bash
+python refine_biographies.py --source-run output/evaluation_flux_t4 --output-dir output/final_refined_t4 --check-only
+```
+
+The main CLI also accepts `--verify-summaries` for new runs or in-place summary
+repair, and `--max-review-revisions 0`, `1`, or `2`. **Use the separate-directory
+entry point above for the frozen evaluation run.** Model verification cannot be
+combined with `--offline-repair`. Normal repair inherits an enabled review policy
+from its derived manifest, so it cannot silently fall back to unreviewed text.
+
+`model_verified` means the model's verdict passed mechanical checks, not that
+facts or age appropriateness are independently established. Report this as a
+system revision stage, not an independent LLM evaluation. Do not reuse the original
+claim annotations after changing biographies; their hashes will be stale. Re-audit
+the revised output, and keep the original experiment results separate.
+
 ## Memory fallbacks
 
 Use `T4_SAFE_MODE=True` first. If FLUX still runs out of memory, try these

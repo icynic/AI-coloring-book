@@ -1,0 +1,7 @@
+# Draft text-evaluation section
+
+We evaluated the eight saved biographies using model-free consistency checks and a qualitative, agent-assisted source-grounding audit. The consistency checks verified the accepted word range, stored source hashes, Wikipedia revision identifiers, evidence-ID bounds, and exact agreement between stored supporting sentences and the source. All 8 biographies passed these checks, with 85-110 words (mean 96.6). Only 4 biographies explicitly mentioned Marburg, revealing incomplete preservation of the collection's local educational theme.
+
+A single Codex-assisted review decomposed the outputs into 149 checkable propositions and attached evidence from the saved input. Of these, 139 were supported, 5 partially supported, 3 unsupported, and 2 conflicted with another saved source passage. These labels are presented as a qualitative audit rather than independent human factuality judgments or automatic entailment scores. For example, Wegener's summary conflated Greenland expeditions with balloon work at Lindenberg, while the Arendt and Pasternak sources contained internally conflicting dates or publication claims.
+
+We additionally recorded sentence lengths and approximate Flesch readability measures. Syllables were estimated with a documented English heuristic, so proper names and foreign titles can distort the scores. Neither these formulas nor structural evidence checks establish suitability for ages 10-14. No independent human readability study was conducted, and no significance test was applied to the qualitative claim labels.

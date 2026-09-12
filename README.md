@@ -97,6 +97,12 @@ and regenerates summaries whose input text changed. It never redownloads or
 regenerates images. Use `--refresh-source-text` alone for CPU-only text recovery.
 See the runbook above for the Colab switches and source-selection policy.
 
+If generation already saved a complete answer but rejected it for a small word
+count overshoot, `--repair-summaries --offline-repair` can recover the final logged
+answer and rebuild the book without loading models. Source provenance and all
+validation checks still apply. The unedited model answer and any removed tail
+sentences are retained for audit; see the recovery runbook for limitations.
+
 ## Outputs
 
 Each run directory contains:
@@ -135,6 +141,8 @@ best result from multiple seeds.
 - `Fetcher.py` — Wikipedia article text, portrait, revision, and license retrieval.
 - `source_text.py` — deterministic, bounded selection of article paragraphs.
 - `Summarizer.py` — grounded Qwen3.5 biography generation.
+- `summary_review.py` — source-grounded feedback, bounded revision, and mechanical acceptance.
+- `refine_biographies.py` — refine text/PDFs in a separate run without fetching or FLUX.
 - `GeneratorFlux2KleinL4Colab.py` — final FLUX image editor.
 - `Concatenator.py` — individual and multi-page A4 PDF rendering.
 - `Generator.py` — SD1.5 + ControlNet evaluation baseline.
@@ -160,6 +168,10 @@ from `evaluation/subjects.txt` by default. The `evaluation/` directory also
 contains a local SD1.5 + ControlNet baseline runner, reproducible A/B
 randomization, human-rating templates, and exact paired statistical analysis.
 See `evaluation/README.md` for the complete protocol.
+
+For optional source-grounded Qwen checking and revision, use the separate-run
+entry point in `docs/COLAB.md`. Frozen experiment outputs remain unchanged.
+Model self-checks are implementation feedback, not independent evaluation.
 
 ## Known limitations
 

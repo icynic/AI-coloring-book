@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "method": "baseline_sd15_controlnet",
+  "source_run": "D:\\Projects\\AIColoringBook\\output\\evaluation_flux_t4",
+  "created_at": "2026-09-07T14:14:59.285045+00:00",
+  "configuration": {
+    "seed": 42,
+    "steps": 15,
+    "controlnet_conditioning_scale": 0.6,
+    "guidance_scale": 10.0,
+    "prompt": "c0l0ringb00k, black and white coloring page, line art, white background, thick lines",
+    "negative_prompt": "shadow, shading, gradients, stippling, screentone, texture, background details, flowers, plants, stripes, grayscale, colored, 3d, realistic, photo, noise, blurry, deformed, filled, filled-in, filled-in lines, filled-in shapes, filled-in patterns, filled background"
+  },
+  "items": [
+    {
+      "subject_id": "M01",
+      "name": "Philip I, Landgrave of Hesse",
+      "slug": "Philip_I_Landgrave_of_Hesse",
+      "seed": 42,
+      "output_image": "D:\\Projects\\AIColoringBook\\evaluation\\baseline_run\\generated_images\\Philip_I_Landgrave_of_Hesse.png",
+      "metadata_path": "D:\\Projects\\AIColoringBook\\evaluation\\baseline_run\\generation_metadata\\Philip_I_Landgrave_of_Hesse.json",
+      "errors": []
+    },
+    {
+      "subject_id": "M02",
+      "name": "Robert Bunsen",
+      "slug": "Robert_Bunsen",
+      "seed": 43,
+      "output_image": "D:\\Projects\\AIColoringBook\\evaluation\\baseline_run\\generated_images\\Robert_Bunsen.png",
+      "metadata_path": "D:\\Projects\\AIColoringBook\\evaluation\\baseline_run\\generation_metadata\\Robert_Bunsen.json",
+      "errors": []
+    },
+    {
+      "subject_id": "M03",
+      "name": "Emil von Behring",
+      "slug": "Emil_von_Behring",
+      "seed": 44,
+      "output_image": "D:\\Projects\\AIColoringBook\\evaluation\\baseline_run\\generated_images\\Emil_von_Behring.png",
+      "metadata_path": "D:\\Projects\\AIColoringBook\\evaluation\\baseline_run\\generation_metadata\\Emil_von_Behring.json",
+      "errors": []
+    },
+    {
+      "subject_id": "M04",
+      "name": "Jacob Grimm",
+      "slug": "Jacob_Grimm",
+      "seed": 45,
+      "output_image": "D:\\Projects\\AIColoringBook\\evaluation\\baseline_run\\generated_images\\Jacob_Grimm.png",
+      "metadata_path": "D:\\Projects\\AIColoringBook\\evaluation\\baseline_run\\generation_metadata\\Jacob_Grimm.json",
+      "errors": []
+    },
+    {
+      "subject_id": "M05",
+      "name": "Hannah Arendt",
+      "slug": "Hannah_Arendt",
+      "seed": 46,
+      "output_image": "D:\\Projects\\AIColoringBook\\evaluation\\baseline_run\\generated_images\\Hannah_Arendt.png",
+      "metadata_path": "D:\\Projects\\AIColoringBook\\evaluation\\baseline_run\\generation_metadata\\Hannah_Arendt.json",
+      "errors": []
+    },
+    {
+      "subject_id": "M06",
+      "name": "Gertrud von Le Fort",
+      "slug": "Gertrud_von_Le_Fort",
+      "seed": 47,
+      "output_image": "D:\\Projects\\AIColoringBook\\evaluation\\baseline_run\\generated_images\\Gertrud_von_Le_Fort.png",
+      "metadata_path": "D:\\Projects\\AIColoringBook\\evaluation\\baseline_run\\generation_metadata\\Gertrud_von_Le_Fort.json",
+      "errors": []
+    },
+    {
+      "subject_id": "M07",
+      "name": "Alfred Wegener",
+      "slug": "Alfred_Wegener",
+      "seed": 48,
+      "output_image": "D:\\Projects\\AIColoringBook\\evaluation\\baseline_run\\generated_images\\Alfred_Wegener.png",
+      "metadata_path": "D:\\Projects\\AIColoringBook\\evaluation\\baseline_run\\generation_metadata\\Alfred_Wegener.json",
+      "errors": []
+    },
+    {
+      "subject_id": "M08",
+      "name": "Boris Pasternak",
+      "slug": "Boris_Pasternak",
+      "seed": 49,
+      "output_image": "D:\\Projects\\AIColoringBook\\evaluation\\baseline_run\\generated_images\\Boris_Pasternak.png",
+      "metadata_path": "D:\\Projects\\AIColoringBook\\evaluation\\baseline_run\\generation_metadata\\Boris_Pasternak.json",
+      "errors": []
+    }
+  ]
+}

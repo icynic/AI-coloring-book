@@ -42,6 +42,19 @@ disabled, deterministic decoding, output-token budget), and
 Validation checks content type, placeholder text, word length and evidence IDs;
 it does not replace human factual review.
 
+`postprocessing_version: 1` supports modest overlength answers by retaining a
+complete-sentence prefix. When applied, `length_adjustment` records the original
+biography, original/final word counts, removed tail, method and accepted range.
+The raw model response is unchanged. Human review must check that the shorter
+biography retains the important facts.
+
+Recovered failed answers include `recovery`: the failure-log path/hash,
+recovery time and provenance method. New failure logs carry a `context` with
+source hash/revision, subject, model settings and requested word range. Legacy
+logs may be bound to the matching repair's source metadata and time interval.
+The model's original creation time is preserved, and no model latency is
+invented for offline recovery.
+
 `summary_failures/<person>.json` records exhausted retries. Old evaluation
 artifacts are kept in `backups/<timestamp>/` when replacements are written.
 `repair_manifest.json` records summary-only recovery; `manifest.json` retains
@@ -55,6 +68,43 @@ inspect per-summary settings when reporting prompt consistency.
 
 The evidence is an audit aid, not a correctness guarantee. The final evaluation
 must still verify each atomic claim against the saved source.
+
+## Optional source-grounded model review
+
+With `--verify-summaries`, a usable biography also requires `summary_review`:
+
+- `version: 1`, `status: model_verified`, exact final summary/source SHA-256 hashes.
+- `policy`: target age, effective word range, and the source-Marburg keyword trigger.
+- `reviewer`: model/revision/quantization, same-model and fresh-chat flags.
+- `initial_draft`: the complete input biography record before refinement.
+- `events`: sequential verification/revision requests, raw model outputs, parsed
+  responses, validation errors, acceptance problems, token ceilings and elapsed time.
+- `content_revisions`, `max_revisions`, deterministic generation settings.
+- `final_review`: one ordered verdict per final biography sentence, exact source
+  excerpts and their source sentence IDs, explanations, and editorial issues.
+
+Each verdict checks all factual details in its biography sentence. The program
+checks coverage and quotation validity, not semantic entailment. Any `partial`,
+`unsupported`, `source_conflict`, or editorial issue blocks acceptance. Conflict
+verdicts need at least two distinct source sentence IDs. Final supporting source
+IDs/sentences are rebuilt from the accepted review, replacing the old citation
+superset. A changed summary, source or editorial policy invalidates that review.
+The source sentence segmentation remains unchanged.
+
+Top-level `raw_model_response` and `generation_attempts` retain initial-generation
+provenance. Revised text and raw editor responses are tracked in `summary_review`;
+do not treat the initial raw response as the final biography. Prior length edits
+remain in `initial_draft`; a new length adjustment, if used, belongs to the revision.
+
+`refine_biographies.py` derives a separate run without copying old PDFs. It adds
+`original_summaries/` and `refinement_origin.json` (source path, manifest hash,
+input fingerprint, per-input file hashes and preparation time). The original run
+is not edited. The derived manifest retains original image runtime/provenance,
+adds `refinement_origin`, and records refinement runtime in `summary_repairs`.
+Enabled review/version/revision-limit settings are persisted in `configuration`.
+
+The status deliberately says **model_verified**, not factually correct: this is
+same-model feedback, not an independent accuracy measurement or human review.
 
 ## `generation_metadata/<person>.json`
 
