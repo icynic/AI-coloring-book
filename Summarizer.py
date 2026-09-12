@@ -54,7 +54,7 @@ class Summarizer:
         if quantization_config is not None:
             pipe_kwargs["model_kwargs"] = {"quantization_config": quantization_config}
 
-        print(f"Loading summarizer {model_name} ({quantization})...")
+        print(f"Loading summarizer {model_name} ({quantization})...", flush=True)
         load_started_at = time.perf_counter()
         self.pipe = pipeline(**pipe_kwargs)
         self.model_load_seconds = round(time.perf_counter() - load_started_at, 3)
@@ -232,14 +232,25 @@ class Summarizer:
         return self.summarize_with_evidence(text, max_new_tokens=max_new_tokens)["summary"]
 
     def refine_with_evidence(self, record, text, target_age="10-14", min_words=60,
-                             max_words=110, max_revisions=2):
+                             max_words=110, max_revisions=1):
         """Reuse the loaded Qwen in fresh reviewer/editor chats, sequentially."""
         def generate(messages, token_budget):
             output = self.pipe(
                 text=messages, enable_thinking=False, return_full_text=False,
                 generate_kwargs={"max_new_tokens": token_budget, "do_sample": False},
             )
-            return self._extract_text(output)
+            raw = self._extract_text(output)
+            tokenizer = getattr(self.pipe, "tokenizer", None)
+            if tokenizer is None:
+                tokenizer = getattr(getattr(self.pipe, "processor", None), "tokenizer", None)
+            tokens = None
+            if tokenizer is not None:
+                try:
+                    tokens = len(tokenizer.encode(raw, add_special_tokens=False))
+                except (AttributeError, TypeError, ValueError):
+                    pass
+            # Retokenized decoded text, excluding EOS; not raw generation IDs.
+            return {"text": raw, "output_text_tokens": tokens}
 
         return refine_biography(
             generate, record, text,

@@ -14,7 +14,7 @@ from source_text import text_sha256
 from Summarizer import Summarizer
 from summary_review import (
     SummaryReviewError, acceptance_problems, make_policy, refine_biography,
-    validate_review, validate_stored_review,
+    resolve_review_evidence, review_messages, validate_review, validate_stored_review,
 )
 from summary_validation import split_source_sentences
 
@@ -28,8 +28,7 @@ FIXED = {"summary": SOURCE, "supporting_source_sentence_ids": [1, 2, 3]}
 
 def row(index, source_index, status="supported", reason=""):
     return {"sentence_id": index, "status": status, "reason": reason,
-            "evidence": [{"source_sentence_id": source_index,
-                          "quote": split_source_sentences(SOURCE)[source_index - 1]}]}
+            "source_sentence_ids": [source_index]}
 
 
 BAD_REVIEW = {"sentence_reviews": [row(1, 1), row(2, 2, "unsupported", "Met does not entail studied with.")],
@@ -48,8 +47,11 @@ def model_with_outputs(*outputs):
 
 
 class ReviewValidationTest(unittest.TestCase):
-    def test_exact_quote_and_complete_coverage(self):
+    def test_compact_source_ids_and_complete_coverage(self):
         self.assertEqual(validate_review(GOOD_REVIEW, SOURCE, SOURCE), GOOD_REVIEW)
+        resolved = resolve_review_evidence(GOOD_REVIEW, SOURCE, SOURCE)
+        self.assertEqual(resolved[1]["source_sentences"],
+                         [{"source_sentence_id": 2, "quote": "She met Liebig in Germany."}])
 
     def test_missing_duplicate_or_invalid_sentence_ids_are_rejected(self):
         for mutate in (
@@ -62,26 +64,25 @@ class ReviewValidationTest(unittest.TestCase):
             with self.assertRaises(ValueError):
                 validate_review(review, SOURCE, SOURCE)
 
-    def test_fake_quotes_out_of_range_and_boolean_source_ids_are_rejected(self):
-        for update in ({"quote": "She studied with Liebig in Germany."},
-                       {"source_sentence_id": 999}, {"source_sentence_id": True}, {"quote": ""}):
+    def test_out_of_range_boolean_noninteger_and_invalid_source_ids_are_rejected(self):
+        for ids in ([999], [True], [0], [-1], [1.0], ["1"], "1"):
             review = copy.deepcopy(GOOD_REVIEW)
-            review["sentence_reviews"][0]["evidence"][0].update(update)
+            review["sentence_reviews"][0]["source_sentence_ids"] = ids
             with self.assertRaises(ValueError):
                 validate_review(review, SOURCE, SOURCE)
 
-    def test_source_conflict_requires_two_distinct_quotes(self):
+    def test_source_conflict_requires_two_distinct_source_ids(self):
         review = copy.deepcopy(GOOD_REVIEW)
         review["sentence_reviews"][0].update(status="source_conflict", reason="Dates disagree.")
         with self.assertRaises(ValueError):
             validate_review(review, SOURCE, SOURCE)
-        review["sentence_reviews"][0]["evidence"].append(row(1, 2)["evidence"][0])
+        review["sentence_reviews"][0]["source_sentence_ids"].append(2)
         validate_review(review, SOURCE, SOURCE)
         self.assertTrue(acceptance_problems(review, SOURCE, make_policy(SOURCE, "10-14", 8, 30)))
 
     def test_empty_evidence_unknown_status_and_invalid_issues_fail_closed(self):
         for mutate in (
-            lambda r: r["sentence_reviews"][0].update(evidence=[]),
+            lambda r: r["sentence_reviews"][0].update(source_sentence_ids=[]),
             lambda r: r["sentence_reviews"][0].update(status="probably_correct"),
             lambda r: r.update(issues="none"),
             lambda r: r.update(issues=[{"kind": "age_style", "reason": ""}]),
@@ -98,6 +99,40 @@ class ReviewValidationTest(unittest.TestCase):
         validate_review(review, text, SOURCE)
         self.assertIn("marburg_missing", acceptance_problems(
             review, text, make_policy(SOURCE, "10-14", 1, 30))[0])
+
+    def test_editorial_warnings_do_not_block_but_marburg_issues_do(self):
+        review = copy.deepcopy(GOOD_REVIEW)
+        review["issues"] = [{"kind": "age_style", "reason": "Sentence is too short."},
+                            {"kind": "unnecessary_detail", "reason": "Consider omitting travel."}]
+        validate_review(review, SOURCE, SOURCE)
+        self.assertEqual(acceptance_problems(review, SOURCE, make_policy(SOURCE, "10-14", 8, 30)), [])
+        review["issues"].append({"kind": "marburg_missing", "reason": "Relation is not explained."})
+        self.assertTrue(acceptance_problems(review, SOURCE, make_policy(SOURCE, "10-14", 8, 30)))
+
+    def test_prompt_allows_omissions_and_does_not_expose_word_range_to_reviewer(self):
+        prompt = review_messages(SOURCE, FIXED, make_policy(SOURCE, "10-14", 60, 110))[1]["content"][0]["text"]
+        self.assertIn("all 3 numbered", prompt)
+        self.assertIn("omitted places, dates, study subjects, or events", prompt)
+        self.assertIn("Do NOT judge word counts", prompt)
+        self.assertIn("Do NOT copy quotes", prompt)
+        self.assertNotIn("60", prompt)
+        self.assertNotIn("110", prompt)
+
+    def test_model_quote_fields_are_not_part_of_the_compact_protocol(self):
+        review = copy.deepcopy(GOOD_REVIEW)
+        review["sentence_reviews"][0]["quote"] = "An unnecessary model quotation."
+        with self.assertRaises(ValueError):
+            validate_review(review, SOURCE, SOURCE)
+
+    def test_adjacent_source_fragments_can_be_cited_without_copying_a_cross_fragment_quote(self):
+        source = "Philip (lit. 'the Magnanimous') was a German nobleman."
+        summary = "Philip was a German nobleman nicknamed 'the Magnanimous'."
+        review = {"sentence_reviews": [{"sentence_id": 1, "status": "supported",
+                                       "source_sentence_ids": [1, 2], "reason": ""}], "issues": []}
+        self.assertEqual(len(split_source_sentences(source)), 2)
+        validate_review(review, summary, source)
+        resolved = resolve_review_evidence(review, summary, source)
+        self.assertEqual([e["quote"] for e in resolved[0]["source_sentences"]], split_source_sentences(source))
 
 
 class RefinementLoopTest(unittest.TestCase):
@@ -143,12 +178,56 @@ class RefinementLoopTest(unittest.TestCase):
         self.assertIn("2 words; required 8-30", feedback)
 
     def test_unresolved_review_stops_at_the_content_revision_limit(self):
-        model = model_with_outputs(BAD_REVIEW, DRAFT, BAD_REVIEW, DRAFT, BAD_REVIEW)
+        model = model_with_outputs(BAD_REVIEW, DRAFT, BAD_REVIEW)
         with self.assertRaises(SummaryReviewError) as caught:
             model.refine_with_evidence(DRAFT, SOURCE, min_words=8, max_words=30)
+        self.assertEqual(model.pipe.call_count, 3)
+        self.assertIn("after 1 revisions", str(caught.exception))
+        self.assertEqual(len(caught.exception.attempts), 3)
+
+    def test_two_revisions_are_available_only_when_explicitly_requested(self):
+        model = model_with_outputs(BAD_REVIEW, DRAFT, BAD_REVIEW, FIXED, GOOD_REVIEW)
+        result = model.refine_with_evidence(DRAFT, SOURCE, min_words=8, max_words=30, max_revisions=2)
         self.assertEqual(model.pipe.call_count, 5)
-        self.assertIn("after 2 revisions", str(caught.exception))
-        self.assertEqual(len(caught.exception.attempts), 5)
+        self.assertEqual(result["summary_review"]["content_revisions"], 2)
+
+    def test_editorial_warning_passes_without_a_revision(self):
+        review = copy.deepcopy(GOOD_REVIEW)
+        review["issues"] = [{"kind": "age_style", "reason": "Sentence 1 is too short."}]
+        model = model_with_outputs(review)
+        result = model.refine_with_evidence(FIXED, SOURCE, min_words=8, max_words=30)
+        self.assertEqual(model.pipe.call_count, 1)
+        self.assertEqual(result["summary_review"]["editorial_warnings"], review["issues"])
+        self.assertEqual(result["summary_review"]["content_revisions"], 0)
+        validate_stored_review(result, SOURCE, "10-14", 8, 30)
+
+    def test_request_logs_have_timing_and_smaller_budgets(self):
+        model = model_with_outputs(BAD_REVIEW, FIXED, GOOD_REVIEW)
+        model.pipe.tokenizer.encode.return_value = list(range(123))
+        with patch("builtins.print") as log:
+            result = model.refine_with_evidence(DRAFT, SOURCE, min_words=8, max_words=30)
+        events = result["summary_review"]["events"]
+        self.assertEqual([e["max_new_tokens"] for e in events], [1024, 512, 1024])
+        self.assertEqual([e["output_text_tokens"] for e in events], [123, 123, 123])
+        self.assertTrue(all(e["elapsed_seconds"] >= 0 for e in events))
+        lines = [str(c.args[0]) for c in log.call_args_list]
+        self.assertEqual(sum("START" in line for line in lines), 3)
+        self.assertEqual(sum("END" in line for line in lines), 3)
+        self.assertTrue(all(c.kwargs.get("flush") for c in log.call_args_list))
+
+    def test_pending_model_call_emits_a_heartbeat(self):
+        import threading
+        heartbeat_seen = threading.Event()
+        def record_log(*args, **kwargs):
+            if "WAIT" in str(args[0]):
+                heartbeat_seen.set()
+        def generate(messages, budget):
+            self.assertTrue(heartbeat_seen.wait(timeout=2))
+            return json.dumps(GOOD_REVIEW)
+        with patch("summary_review.REQUEST_HEARTBEAT_SECONDS", 0.01), \
+             patch("builtins.print", side_effect=record_log) as log:
+            refine_biography(generate, FIXED, SOURCE, {}, min_words=8, max_words=30)
+        self.assertTrue(any("WAIT" in str(c.args[0]) for c in log.call_args_list))
 
     def test_repeated_malformed_review_is_not_promoted_to_success(self):
         model = model_with_outputs({"passed": True}, {"passed": True})
@@ -190,6 +269,42 @@ class RefinementLoopTest(unittest.TestCase):
         with self.assertRaises(SummaryReviewError) as caught:
             refine_biography(generate, FIXED, SOURCE, {}, min_words=8, max_words=30)
         self.assertIn("CUDA out of memory", caught.exception.attempts[0]["error"])
+
+    def legacy_record(self):
+        result = model_with_outputs(GOOD_REVIEW).refine_with_evidence(FIXED, SOURCE, min_words=8, max_words=30)
+        saved = result["summary_review"]
+        saved["version"] = 1
+        saved["policy"].pop("editorial_issues")
+        saved["final_review"] = {
+            "sentence_reviews": [
+                {"sentence_id": i, "status": "supported", "reason": "", "evidence": [
+                    {"source_sentence_id": i, "quote": s}]} for i, s in enumerate(split_source_sentences(SOURCE), 1)
+            ], "issues": [],
+        }
+        saved.pop("resolved_evidence")
+        saved.pop("editorial_warnings")
+        return result
+
+    def test_successful_legacy_review_can_be_reused_without_upgrade(self):
+        result = self.legacy_record()
+        validate_stored_review(result, SOURCE, "10-14", 8, 30)
+        self.assertEqual(result["summary_review"]["version"], 1)
+
+    def test_legacy_fake_quote_or_unresolved_issues_are_still_rejected(self):
+        result = self.legacy_record()
+        result["summary_review"]["final_review"]["sentence_reviews"][0]["evidence"][0]["quote"] = "Invented quote."
+        with self.assertRaises(ValueError):
+            validate_stored_review(result, SOURCE, "10-14", 8, 30)
+        result = self.legacy_record()
+        result["summary_review"]["final_review"]["issues"] = [{"kind": "age_style", "reason": "Unresolved."}]
+        with self.assertRaises(ValueError):
+            validate_stored_review(result, SOURCE, "10-14", 8, 30)
+
+    def test_retrieved_quote_tampering_is_rejected(self):
+        result = model_with_outputs(GOOD_REVIEW).refine_with_evidence(FIXED, SOURCE, min_words=8, max_words=30)
+        result["summary_review"]["resolved_evidence"][0]["source_sentences"][0]["quote"] = "Changed quote."
+        with self.assertRaises(ValueError):
+            validate_stored_review(result, SOURCE, "10-14", 8, 30)
 
 
 class SeparateRunTest(unittest.TestCase):
@@ -242,6 +357,8 @@ class SeparateRunTest(unittest.TestCase):
                                                   "--output-dir", str(derived)]))
             self.assertTrue(result["book_path"])
             self.assertEqual(pipe.call_count, 3)
+            self.assertEqual(result["configuration"]["max_review_revisions"], 1)
+            self.assertEqual(result["configuration"]["summary_review_version"], 2)
             self.assertEqual(self.snapshot(source), before)
             self.assertEqual(result["configuration"]["qwen_quantization"], "4bit")
             prepare_refinement(source, derived)
@@ -250,20 +367,38 @@ class SeparateRunTest(unittest.TestCase):
             self.assertTrue(resumed["book_path"])
             self.assertEqual(self.snapshot(source), before)
 
+    def test_accepted_legacy_biography_does_not_load_qwen_when_resuming(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            source, derived = Path(tmp) / "frozen", Path(tmp) / "derived"
+            self.make_run(source)
+            prepare_refinement(source, derived)
+            legacy = RefinementLoopTest().legacy_record()
+            legacy.update({"source_text_sha256": text_sha256(SOURCE), "source_revision_id": 123})
+            (derived / "summaries/Ada.json").write_text(json.dumps(legacy), encoding="utf-8")
+            with patch("Summarizer.Summarizer", side_effect=AssertionError("accepted legacy cache")):
+                result = run_pipeline(parse_args(["--repair-summaries", "--verify-summaries",
+                                                  "--output-dir", str(derived)]))
+            self.assertTrue(result["book_path"])
+            self.assertEqual(json.loads((derived / "summaries/Ada.json").read_text())["summary_review"]["version"], 1)
+
+    def test_main_cli_defaults_to_one_content_revision(self):
+        self.assertEqual(parse_args([]).max_review_revisions, 1)
+        self.assertEqual(parse_args(["--max-review-revisions", "2"]).max_review_revisions, 2)
+
     def test_failed_review_does_not_publish_an_old_or_unreviewed_pdf(self):
         with tempfile.TemporaryDirectory() as tmp:
             source, derived = Path(tmp) / "frozen", Path(tmp) / "derived"
             self.make_run(source)
             prepare_refinement(source, derived)
             (derived / "coloring_book.pdf").write_bytes(b"old-derived-book")
-            model = model_with_outputs(BAD_REVIEW, DRAFT, BAD_REVIEW, DRAFT, BAD_REVIEW)
+            model = model_with_outputs(BAD_REVIEW, DRAFT, BAD_REVIEW)
             with patch("Summarizer.Summarizer", return_value=model):
                 result = run_pipeline(parse_args(["--repair-summaries", "--verify-summaries",
                                                   "--output-dir", str(derived)]))
             self.assertIsNone(result["book_path"])
             self.assertEqual((derived / "coloring_book.pdf").read_bytes(), b"old-derived-book")
             failure = json.loads((derived / "summary_failures/Ada.json").read_text(encoding="utf-8"))
-            self.assertEqual(len(failure["attempts"]), 5)
+            self.assertEqual(len(failure["attempts"]), 3)
             self.assertTrue(failure["context"]["verify_summaries"])
 
     def test_same_nested_nonempty_or_changed_input_directories_are_rejected(self):

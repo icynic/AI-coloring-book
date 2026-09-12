@@ -73,23 +73,41 @@ must still verify each atomic claim against the saved source.
 
 With `--verify-summaries`, a usable biography also requires `summary_review`:
 
-- `version: 1`, `status: model_verified`, exact final summary/source SHA-256 hashes.
-- `policy`: target age, effective word range, and the source-Marburg keyword trigger.
+- `version: 2`, `status: model_verified`, exact final summary/source SHA-256 hashes.
+- `policy`: target age, effective whole-biography word range, source-Marburg keyword
+  trigger, and `editorial_issues: warnings_only`.
 - `reviewer`: model/revision/quantization, same-model and fresh-chat flags.
 - `initial_draft`: the complete input biography record before refinement.
 - `events`: sequential verification/revision requests, raw model outputs, parsed
-  responses, validation errors, acceptance problems, token ceilings and elapsed time.
+  responses, validation errors, acceptance problems, editorial warnings, token
+  ceilings, elapsed time and optional `output_text_tokens` (decoded text retokenized
+  without special tokens, not the original generation IDs).
 - `content_revisions`, `max_revisions`, deterministic generation settings.
-- `final_review`: one ordered verdict per final biography sentence, exact source
-  excerpts and their source sentence IDs, explanations, and editorial issues.
+- `final_review`: compact ordered verdicts per biography sentence with `sentence_id`,
+  `status`, `source_sentence_ids`, and a short `reason`, plus `issues`.
+- `resolved_evidence`: each biography sentence paired with full verbatim source
+  sentences retrieved by the program, not quotations composed by the model.
+- `editorial_warnings`: final `age_style` and `unnecessary_detail` issues.
 
 Each verdict checks all factual details in its biography sentence. The program
-checks coverage and quotation validity, not semantic entailment. Any `partial`,
-`unsupported`, `source_conflict`, or editorial issue blocks acceptance. Conflict
+checks coverage, ID bounds, and retrieved-evidence consistency, not semantic
+entailment. Any `partial`, `unsupported`, or `source_conflict` verdict blocks
+acceptance; `marburg_missing` issues also block. Style and unnecessary-detail issues
+are warnings only: they do not trigger revisions or block PDF publication. Conflict
 verdicts need at least two distinct source sentence IDs. Final supporting source
 IDs/sentences are rebuilt from the accepted review, replacing the old citation
-superset. A changed summary, source or editorial policy invalidates that review.
-The source sentence segmentation remains unchanged.
+superset. Source omissions are allowed unless the written claim is unsupported.
+The model is not asked to assess word counts: the program checks the full biography.
+A changed summary, source or editorial policy invalidates that review. The source
+sentence segmentation remains unchanged.
+
+Defaults are one content revision, review ceilings of 1024/2048 tokens, revision
+ceilings of 512/1024, and two format attempts per stage. The CLI can explicitly
+request two revisions. Successful version-1 caches retain their version and are
+reused if their original strict no-issue review, hashes, policy, and verbatim quotes
+still validate. A new manifest's `summary_review_version: 2` records the latest
+repair implementation, not necessarily every reused record's version. Failed old
+reviews remain diagnostic logs and are not converted into passed reviews.
 
 Top-level `raw_model_response` and `generation_attempts` retain initial-generation
 provenance. Revised text and raw editor responses are tracked in `summary_review`;

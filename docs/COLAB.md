@@ -228,16 +228,43 @@ refresh. Already-valid summaries and all FLUX images remain unchanged.
 ## Source-grounded checking and revision in a separate prototype
 
 After syncing `Summarizer.py`, `summary_validation.py`, `summary_review.py`,
-`main.py` and `refine_biographies.py`, run this cell **from the repository
-directory**, with the existing dependencies and Drive mounted:
+`main.py` and `refine_biographies.py`, stop any previous refinement cell before
+launching another. Do not restart the runtime or launch concurrent GPU jobs.
+Use the optional refinement cell in the **updated notebook** (set its switch to
+`True`), or this streaming cell **from the repository directory**, with the
+existing dependencies and Drive mounted. Updating repository files does not
+replace cells in a notebook that is already open.
 
 ```python
 import subprocess, sys
-subprocess.run([
+old = subprocess.run(['pgrep', '-af', '[r]efine_biographies[.]py'],
+                     capture_output=True, text=True)
+if old.returncode == 0:
+    print(old.stdout, flush=True)
+    raise RuntimeError('Previous refinement process is still running; do not start another.')
+command = [
     sys.executable, '-u', 'refine_biographies.py',
     '--source-run', '/content/drive/MyDrive/AIColoringBook/evaluation_flux_t4',
     '--output-dir', '/content/drive/MyDrive/AIColoringBook/final_refined_t4',
-], check=True)
+    '--max-review-revisions', '1',
+]
+print('Starting refinement; streaming logs.', flush=True)
+process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                           text=True, encoding='utf-8', errors='replace', bufsize=1)
+try:
+    for line in process.stdout:
+        print(line, end='', flush=True)
+    code = process.wait()
+    if code:
+        raise subprocess.CalledProcessError(code, command)
+except KeyboardInterrupt:
+    process.terminate()
+    try:
+        process.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        process.wait()
+    raise
 ```
 
 The source run is read-only. The derived directory must be empty on its first
@@ -251,30 +278,54 @@ load FLUX, or regenerate images. Source metadata and generation metadata retain
 their original paths as provenance; repair resolves generated images relative
 to the derived directory.
 
-Qwen is loaded once. Each review/editor request uses a fresh chat, thinking
-disabled, with the full numbered saved source. The checker covers each biography
-sentence and checks all factual details in it, quoting source excerpts. The four
-verdicts are `supported`, `partial`, `unsupported`, and `source_conflict`.
-Feedback also checks essential technical language and unnecessary personal detail.
-The program rejects missing sentence coverage, invalid IDs, quotes not found in
-the referenced sentence, and conflicts lacking two different source IDs. A
-Marburg keyword in the source additionally requires Marburg in the biography;
+Qwen is loaded once. Version 2 uses a compact protocol in fresh chats, thinking
+disabled, with the full numbered saved source. Every biography sentence must
+receive a verdict (`supported`, `partial`, `unsupported`, or `source_conflict`),
+integer `source_sentence_ids`, and a short reason (empty for supported). The model
+does not copy quotes: the program retrieves verbatim source sentences from those
+IDs and stores them in `resolved_evidence`. This removes quotation-copying failures,
+not semantic errors in choosing evidence. ID bounds, complete sentence coverage,
+source hashes and actual factual verdicts are still enforced. Conflict verdicts
+require two different source IDs. Source segmentation remains unchanged; adjacent
+fragments can be cited together.
+
+The prompt explicitly permits omissions of source details and tells the checker
+not to judge word counts. The program enforces the **whole biography's** saved
+word range. `age_style` and `unnecessary_detail` issues are recorded as non-blocking
+warnings and do not trigger revisions on their own. A `marburg_missing` issue is
+still blocking. A source-Marburg keyword also requires Marburg in the biography;
 the model checks the actual relation. This keyword rule is not a relation extractor.
 
-Only an all-supported review with no editorial issues passes. There are at most
-two content revisions, each followed by a new review; disputed source facts should
-be omitted rather than resolved from model memory. Review JSON and revision JSON
-each allow two format/validation attempts. Review token budgets are 2048/4096;
-revision budgets are 1024/2048. Moderate length overshoots can still use the existing
-complete-sentence-prefix policy, but the resulting text is reviewed again.
+All factual sentence verdicts must be supported. By default there is at most
+**one** content revision followed by another review; disputed source facts should
+be omitted rather than resolved from model memory. Each JSON stage allows two
+format/validation attempts. Review ceilings are 1024/2048 tokens; revision ceilings
+are 512/1024. These are output limits, not a forced output length or a time limit.
+The review/revision loop permits at most six model calls per person (three without
+format retries), compared with the previous ten-call maximum. This excludes any
+initial generation needed for a missing or structurally invalid biography. Actual T4 latency has not
+been benchmarked. Moderate overshoots can use complete-sentence-prefix fitting,
+but the resulting text is reviewed again.
+
+Each request prints flushed `START`/`END` logs, elapsed time and, when a tokenizer
+is available, `output_text_tokens` (retokenized decoded text, excluding EOS; not
+raw generation IDs). Every 30 seconds a `WAIT` heartbeat reports a pending model
+call, **not** measured token progress or proof the GPU is advancing. The streaming
+launcher forwards both stdout and stderr into the notebook; merely using `-u`
+does not explicitly forward OS-level child output through Python's notebook stream.
 
 The derived summary's `summary_review` stores the initial draft, raw verification
-and revision outputs, quotes, verdicts, reasons, timing, policy, and final text/source
-hashes. Final citations are rebuilt from the accepted review. Failed attempts stay
+and revision outputs, retrieved evidence, verdicts, reasons, warnings, timing,
+policy, and final text/source hashes. Final citations are rebuilt from the accepted review. Failed attempts stay
 in `summary_failures/`; no combined PDF is published if any person remains unresolved.
 Inspect `repair_manifest.json` for per-person failures. A rerun of the same command
 reuses accepted reviews and retries unresolved people; changed frozen inputs require
-a new output directory. This is not a guarantee that a retry will succeed.
+a new output directory. Successful version-1 caches are also reused if their
+source/text/policy and old exact quotations still validate; unsuccessful logs are
+not promoted to accepted output. Cached records retain their actual review version.
+The latest repair manifest version does not imply all cached people were checked
+with the new prompt. Unfinished requests are not checkpoint-resumed. This is not
+a guarantee that a retry will succeed.
 
 For a local read-only input preflight, without loading either model:
 
@@ -283,13 +334,14 @@ python refine_biographies.py --source-run output/evaluation_flux_t4 --output-dir
 ```
 
 The main CLI also accepts `--verify-summaries` for new runs or in-place summary
-repair, and `--max-review-revisions 0`, `1`, or `2`. **Use the separate-directory
+repair, and `--max-review-revisions 0`, `1` (default), or explicitly `2`. **Use the separate-directory
 entry point above for the frozen evaluation run.** Model verification cannot be
 combined with `--offline-repair`. Normal repair inherits an enabled review policy
 from its derived manifest, so it cannot silently fall back to unreviewed text.
 
 `model_verified` means the model's verdict passed mechanical checks, not that
-facts or age appropriateness are independently established. Report this as a
+facts or age appropriateness are independently established. Warning-only editorial
+feedback is not an age-appropriateness acceptance test. Report this as a
 system revision stage, not an independent LLM evaluation. Do not reuse the original
 claim annotations after changing biographies; their hashes will be stale. Re-audit
 the revised output, and keep the original experiment results separate.

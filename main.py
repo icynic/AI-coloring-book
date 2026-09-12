@@ -265,7 +265,7 @@ def summarization_stage(records, paths, args):
         )
         try:
             for record, draft in pending:
-                print(f"[summarize] {record['source']['title']}")
+                print(f"[summarize] {record['source']['title']}", flush=True)
                 summary_path = paths["summaries"] / f"{record['slug']}.json"
                 try:
                     summary = draft if draft is not None else summarizer.summarize_with_evidence(
@@ -717,9 +717,9 @@ def parse_args(argv=None):
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--target-age", default="10-14")
     parser.add_argument("--verify-summaries", action="store_true",
-                        help="Check every biography against source quotes and revise with Qwen before PDF publication.")
-    parser.add_argument("--max-review-revisions", type=int, choices=[0, 1, 2], default=2,
-                        help="Maximum content revisions after source-grounded review (default: 2).")
+                        help="Check biography facts against source IDs; editorial suggestions are non-blocking warnings.")
+    parser.add_argument("--max-review-revisions", type=int, choices=[0, 1, 2], default=1,
+                        help="Maximum content revisions after source-grounded review (default: 1).")
     parser.add_argument("--summary-min-words", type=int, default=None,
                         help="Minimum biography words (default: 80; repair inherits the saved range).")
     parser.add_argument("--summary-max-words", type=int, default=None,

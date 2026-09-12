@@ -115,13 +115,14 @@ def prepare_refinement(source_run, output_dir, check_only=False):
 
 
 def main(argv=None):
+    print("[refine] Starting input preflight (no Qwen/FLUX inference yet)", flush=True)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-run", required=True)
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--check-only", action="store_true")
     parser.add_argument("--summary-min-words", type=int)
     parser.add_argument("--summary-max-words", type=int)
-    parser.add_argument("--max-review-revisions", type=int, choices=[0, 1, 2], default=2)
+    parser.add_argument("--max-review-revisions", type=int, choices=[0, 1, 2], default=1)
     args = parser.parse_args(argv)
     # Validate overrides before creating a derived directory.
     manifest = read_json(Path(args.source_run) / "manifest.json")
