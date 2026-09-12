@@ -23,7 +23,6 @@ from Fetcher import get_person_info, refresh_person_text
 from source_text import SOURCE_POLICY_VERSION, text_sha256
 from summary_recovery import recover_failed_summary
 from summary_validation import validate_summary
-from summary_review import REVIEW_VERSION, validate_stored_review
 
 
 DEFAULT_QWEN_MODEL = "Qwen/Qwen3.5-4B"
@@ -129,7 +128,7 @@ def backup_existing(paths, path):
         shutil.copy2(path, destination)
 
 
-def load_valid_summary(record, paths, args, require_review=True):
+def load_valid_summary(record, paths, args):
     summary_path = paths["summaries"] / f"{record['slug']}.json"
     summary = read_json(summary_path)
     validate_summary(summary, record["source"].get("summary"),
@@ -141,9 +140,6 @@ def load_valid_summary(record, paths, args, require_review=True):
     if summary.get("source_text_sha256") or record["source"].get("source_policy_version") == SOURCE_POLICY_VERSION:
         if summary.get("source_text_sha256") != source_hash:
             raise ValueError("Source text changed (or the old summary has no source hash); regenerate its evidence IDs.")
-    if require_review and args.verify_summaries:
-        validate_stored_review(summary, record["source"]["summary"], args.target_age,
-                              args.summary_min_words, args.summary_max_words)
     return summary
 
 
@@ -216,9 +212,8 @@ def summarization_stage(records, paths, args):
         summary_path = paths["summaries"] / f"{record['slug']}.json"
         record["summary_path"] = str(summary_path)
         invalid_reason = None
-        needs_review = False
         try:
-            record["summary"] = load_valid_summary(record, paths, args, require_review=False)
+            record["summary"] = load_valid_summary(record, paths, args)
         except (OSError, ValueError) as exc:
             invalid_reason = str(exc)
             if summary_path.exists():
@@ -235,24 +230,14 @@ def summarization_stage(records, paths, args):
                 pass
             except (OSError, ValueError, KeyError, TypeError) as exc:
                 print(f"[summarize] Saved failure cannot be reused for {record['query']}: {exc}")
-        if record.get("summary") is not None and args.verify_summaries:
-            try:
-                validate_stored_review(record["summary"], record["source"]["summary"], args.target_age,
-                                      args.summary_min_words, args.summary_max_words)
-            except ValueError as exc:
-                needs_review = True
-                print(f"[review] {record['query']}: {exc}; checking the existing draft")
         if invalid_reason and args.offline_repair:
             record["errors"].append(f"Offline repair could not recover a valid summary: {invalid_reason}")
             continue
-        if (invalid_reason or args.force or needs_review) and not args.skip_summarization and record["source"].get("summary"):
-            draft = record.pop("summary", None)
-            pending.append((record, None if args.force else draft))
+        if (invalid_reason or args.force) and not args.skip_summarization and record["source"].get("summary"):
+            record.pop("summary", None)
+            pending.append(record)
         elif invalid_reason:
             record["errors"].append(f"No valid summary: {invalid_reason}")
-        elif needs_review:
-            record.pop("summary", None)
-            record["errors"].append("No source-grounded review; cannot skip summarization with --verify-summaries.")
 
     summarizer = None
     if pending:
@@ -264,22 +249,16 @@ def summarization_stage(records, paths, args):
             revision=args.qwen_revision,
         )
         try:
-            for record, draft in pending:
+            for record in pending:
                 print(f"[summarize] {record['source']['title']}", flush=True)
                 summary_path = paths["summaries"] / f"{record['slug']}.json"
                 try:
-                    summary = draft if draft is not None else summarizer.summarize_with_evidence(
+                    summary = summarizer.summarize_with_evidence(
                         record["source"]["summary"],
                         target_age=args.target_age,
                         min_words=args.summary_min_words,
                         max_words=args.summary_max_words,
                     )
-                    if args.verify_summaries:
-                        summary = summarizer.refine_with_evidence(
-                            summary, record["source"]["summary"], target_age=args.target_age,
-                            min_words=args.summary_min_words, max_words=args.summary_max_words,
-                            max_revisions=args.max_review_revisions,
-                        )
                     summary.update(
                         {
                             "query": record["query"],
@@ -292,9 +271,6 @@ def summarization_stage(records, paths, args):
                     )
                     validate_summary(summary, record["source"]["summary"],
                                      args.summary_min_words, args.summary_max_words)
-                    if args.verify_summaries:
-                        validate_stored_review(summary, record["source"]["summary"], args.target_age,
-                                              args.summary_min_words, args.summary_max_words)
                     backup_existing(paths, summary_path)
                     write_json(summary_path, summary)
                     record["summary"] = summary
@@ -311,8 +287,7 @@ def summarization_stage(records, paths, args):
                                     "source_text_sha256": text_sha256(record["source"]["summary"]),
                                     "model_id": args.qwen_model, "model_revision": args.qwen_revision,
                                     "quantization": args.qwen_quantization, "target_age": args.target_age,
-                                    "requested_word_range": [args.summary_min_words, args.summary_max_words],
-                                    "verify_summaries": args.verify_summaries},
+                                    "requested_word_range": [args.summary_min_words, args.summary_max_words]},
                     })
         finally:
             summarizer.cleanup()
@@ -408,9 +383,6 @@ def pdf_stage(records, paths, args):
                 raise ValueError("No validated biography is available; see the summarization error above.")
             validate_summary(record.get("summary"), record["source"].get("summary"),
                              args.summary_min_words, args.summary_max_words)
-            if args.verify_summaries:
-                validate_stored_review(record["summary"], record["source"]["summary"], args.target_age,
-                                      args.summary_min_words, args.summary_max_words)
             if not Path(record["generated_image_path"]).is_file():
                 raise ValueError("Generated image is missing.")
         except ValueError as exc:
@@ -519,9 +491,6 @@ def run_pipeline(args):
             "target_age": args.target_age,
             "summary_word_range": [args.summary_min_words, args.summary_max_words],
             "t4_safe_mode": args.t4_safe_mode,
-            "verify_summaries": args.verify_summaries,
-            "summary_review_version": REVIEW_VERSION if args.verify_summaries else None,
-            "max_review_revisions": args.max_review_revisions if args.verify_summaries else None,
         },
         "book_path": str(book_path) if book_path else None,
         "items": [manifest_record(record) for record in records],
@@ -615,9 +584,6 @@ def repair_summaries(args):
     manifest_path = run_dir / "manifest.json"
     original = read_json(manifest_path)
     config = original["configuration"]
-    args.verify_summaries = args.verify_summaries or config.get("verify_summaries", False)
-    if args.verify_summaries and args.offline_repair:
-        raise ValueError("Source-grounded model review cannot use --offline-repair.")
     # Preserve the experiment's actual Qwen configuration and image provenance.
     for key in ("qwen_model", "qwen_revision", "qwen_quantization", "target_age"):
         if key in config:
@@ -655,8 +621,7 @@ def repair_summaries(args):
             invalid.append(name)
             print(f"[check] {name}: needs repair ({exc})")
         records.append(record)
-    action = "source-grounded review/repair" if args.verify_summaries else "regeneration"
-    print(f"[check] {len(invalid)}/{len(records)} biographies need {action}; all saved images are present.")
+    print(f"[check] {len(invalid)}/{len(records)} biographies need regeneration; all saved images are present.")
     if args.check_only:
         return {"invalid_summaries": invalid, "subjects": len(records)}
 
@@ -670,9 +635,6 @@ def repair_summaries(args):
                      "summary_word_range": word_range,
                      "book_path": str(book_path) if book_path else None,
                      "items": [manifest_record(record) for record in records]}
-    if args.verify_summaries:
-        repair_record["summary_review_version"] = REVIEW_VERSION
-        repair_record["max_review_revisions"] = args.max_review_revisions
     backup_existing(paths, run_dir / "repair_manifest.json")
     write_json(run_dir / "repair_manifest.json", repair_record)
     # Keep original image-run timing, runtime, model settings and provenance.
@@ -680,10 +642,9 @@ def repair_summaries(args):
     backup_existing(paths, manifest_path)
     updated = dict(original)
     updated["configuration"] = {**config, "summary_word_range": word_range}
-    if args.verify_summaries:
-        updated["configuration"].update({"verify_summaries": True,
-                                          "summary_review_version": REVIEW_VERSION,
-                                          "max_review_revisions": args.max_review_revisions})
+    # Retire old self-review settings without erasing the historical artifacts.
+    for key in ("verify_summaries", "summary_review_version", "max_review_revisions"):
+        updated["configuration"].pop(key, None)
     updated["book_path"] = repair_record["book_path"]
     updated["items"] = repair_record["items"]
     updated["summary_repairs"] = [*original.get("summary_repairs", []), repair_record]
@@ -716,10 +677,6 @@ def parse_args(argv=None):
     parser.add_argument("--max-sequence-length", type=int, default=512)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--target-age", default="10-14")
-    parser.add_argument("--verify-summaries", action="store_true",
-                        help="Check biography facts against source IDs; editorial suggestions are non-blocking warnings.")
-    parser.add_argument("--max-review-revisions", type=int, choices=[0, 1, 2], default=1,
-                        help="Maximum content revisions after source-grounded review (default: 1).")
     parser.add_argument("--summary-min-words", type=int, default=None,
                         help="Minimum biography words (default: 80; repair inherits the saved range).")
     parser.add_argument("--summary-max-words", type=int, default=None,
@@ -747,8 +704,6 @@ def parse_args(argv=None):
         ),
     )
     args = parser.parse_args(argv)
-    if args.verify_summaries and args.offline_repair:
-        parser.error("--verify-summaries cannot be combined with --offline-repair")
     if args.offline_repair and (not args.repair_summaries or args.refresh_source_text):
         parser.error("--offline-repair requires --repair-summaries and cannot refresh sources")
     if args.check_only and not (args.repair_summaries or args.refresh_source_text):

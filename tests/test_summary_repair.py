@@ -11,6 +11,7 @@ from PIL import Image
 from Concatenator import Concatenator
 from main import parse_args, resolve_summary_word_range, run_pipeline
 from Summarizer import Summarizer, SummaryGenerationError
+from source_text import text_sha256
 from summary_validation import parse_response, validate_summary
 
 
@@ -138,6 +139,65 @@ class RepairRunTest(unittest.TestCase):
     def snapshot(self, root):
         return {p.relative_to(root).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
                 for p in root.rglob("*") if p.is_file()}
+
+    def test_legacy_self_review_settings_do_not_trigger_models_or_rewrite_cached_text(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            original = self.make_run(root)
+            old_settings = {"verify_summaries": True, "summary_review_version": 2,
+                            "max_review_revisions": 1}
+            original["configuration"].update(old_settings)
+            original["summary_repairs"] = [{"summary_review_version": 2}]
+            (root / "manifest.json").write_text(json.dumps(original), encoding="utf-8")
+            source_path = root / "sources/Ada.json"
+            source = json.loads(source_path.read_text(encoding="utf-8"))
+            source.update({"source_policy_version": 2, "source_text_sha256": text_sha256(SOURCE)})
+            source_path.write_text(json.dumps(source), encoding="utf-8")
+            summary = {**VALID, "source_revision_id": 123, "source_text_sha256": text_sha256(SOURCE),
+                       "summary_review": {"version": 2, "status": "failed"}}
+            (root / "summaries/Ada.json").write_text(json.dumps(summary), encoding="utf-8")
+            before = self.snapshot(root)
+            command = ["--repair-summaries", "--offline-repair", "--output-dir", tmp]
+            with patch("main.get_person_info", side_effect=AssertionError("network")), \
+                 patch("main.image_generation_stage", side_effect=AssertionError("FLUX")), \
+                 patch("Summarizer.Summarizer", side_effect=AssertionError("model loaded")):
+                check = run_pipeline(parse_args(command + ["--check-only"]))
+                self.assertEqual(check["invalid_summaries"], [])
+                self.assertEqual(self.snapshot(root), before)
+                result = run_pipeline(parse_args(command))
+            self.assertTrue(result["book_path"])
+            self.assertEqual(result["items"][0]["errors"], [])
+            for key in old_settings:
+                self.assertNotIn(key, result["configuration"])
+            self.assertEqual(result["summary_repairs"][0], original["summary_repairs"][0])
+            after = self.snapshot(root)
+            for path in ("sources/Ada.json", "generated_images/Ada.png", "summaries/Ada.json"):
+                self.assertEqual(after[path], before[path])
+            backup = next((root / "backups").iterdir())
+            self.assertEqual(json.loads((backup / "manifest.json").read_text(encoding="utf-8")), original)
+
+    def test_legacy_model_pass_does_not_bypass_source_hash_validation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            original = self.make_run(root)
+            original["configuration"]["verify_summaries"] = True
+            (root / "manifest.json").write_text(json.dumps(original), encoding="utf-8")
+            summary = {**VALID, "source_revision_id": 123, "source_text_sha256": "wrong-source-hash",
+                       "summary_review": {"version": 2, "status": "model_verified"}}
+            (root / "summaries/Ada.json").write_text(json.dumps(summary), encoding="utf-8")
+            before = self.snapshot(root)
+            command = ["--repair-summaries", "--offline-repair", "--output-dir", tmp]
+            with patch("main.get_person_info", side_effect=AssertionError("network")), \
+                 patch("main.image_generation_stage", side_effect=AssertionError("FLUX")), \
+                 patch("Summarizer.Summarizer", side_effect=AssertionError("model loaded")):
+                check = run_pipeline(parse_args(command + ["--check-only"]))
+                self.assertEqual(check["invalid_summaries"], ["Ada"])
+                self.assertEqual(self.snapshot(root), before)
+                result = run_pipeline(parse_args(command))
+            self.assertIsNone(result["book_path"])
+            self.assertTrue(result["items"][0]["errors"])
+            self.assertEqual((root / "coloring_book.pdf").read_bytes(), b"old-placeholder-pdf")
+            self.assertEqual(self.snapshot(root)["summaries/Ada.json"], before["summaries/Ada.json"])
 
     def test_check_only_does_not_write_or_load_models_or_use_network(self):
         with tempfile.TemporaryDirectory() as tmp:

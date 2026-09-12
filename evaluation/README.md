@@ -143,9 +143,9 @@ the evaluated version for reproducibility.
 
 ## Reporting rules
 
-Source-grounded Qwen refinement is available via `refine_biographies.py`; see
-`docs/COLAB.md`. Keep the refined prototype in a separate directory and do not
-mix its biographies with the frozen experiment's audit. Existing annotations
+The Qwen self-review/refinement stage has been removed; automatic image metrics
+and the frozen source-grounded biography audit remain available. Keep later
+prototype edits separate from the evaluated biographies. Existing annotations
 are hash-bound and must be reviewed anew for changed text. A before/after
 comparison must use fresh source audits, not the model's own pass rate.
 

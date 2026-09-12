@@ -69,60 +69,25 @@ inspect per-summary settings when reporting prompt consistency.
 The evidence is an audit aid, not a correctness guarantee. The final evaluation
 must still verify each atomic claim against the saved source.
 
-## Optional source-grounded model review
+## Legacy model self-review artifacts
 
-With `--verify-summaries`, a usable biography also requires `summary_review`:
+The model reviewer/editor loop and its CLI options have been removed.
+Existing `summary_review` records, `original_summaries/`,
+`refinement_origin.json`, failure logs, and historical repair entries are
+retained as provenance; they are not required or used to accept a biography.
+A historical `model_verified` status is a model verdict, not independent proof
+of correctness. Top-level raw responses in those legacy revised summaries may
+describe the initial draft rather than the final text.
 
-- `version: 2`, `status: model_verified`, exact final summary/source SHA-256 hashes.
-- `policy`: target age, effective whole-biography word range, source-Marburg keyword
-  trigger, and `editorial_issues: warnings_only`.
-- `reviewer`: model/revision/quantization, same-model and fresh-chat flags.
-- `initial_draft`: the complete input biography record before refinement.
-- `events`: sequential verification/revision requests, raw model outputs, parsed
-  responses, validation errors, acceptance problems, editorial warnings, token
-  ceilings, elapsed time and optional `output_text_tokens` (decoded text retokenized
-  without special tokens, not the original generation IDs).
-- `content_revisions`, `max_revisions`, deterministic generation settings.
-- `final_review`: compact ordered verdicts per biography sentence with `sentence_id`,
-  `status`, `source_sentence_ids`, and a short `reason`, plus `issues`.
-- `resolved_evidence`: each biography sentence paired with full verbatim source
-  sentences retrieved by the program, not quotations composed by the model.
-- `editorial_warnings`: final `age_style` and `unnecessary_detail` issues.
+Summary repair ignores legacy self-review settings and removes
+`verify_summaries`, `summary_review_version`, and `max_review_revisions`
+from the newly saved configuration. Backups preserve the earlier manifest,
+and historical repair entries and summary files remain unchanged unless normal
+deterministic summary validation requires recovery or regeneration.
 
-Each verdict checks all factual details in its biography sentence. The program
-checks coverage, ID bounds, and retrieved-evidence consistency, not semantic
-entailment. Any `partial`, `unsupported`, or `source_conflict` verdict blocks
-acceptance; `marburg_missing` issues also block. Style and unnecessary-detail issues
-are warnings only: they do not trigger revisions or block PDF publication. Conflict
-verdicts need at least two distinct source sentence IDs. Final supporting source
-IDs/sentences are rebuilt from the accepted review, replacing the old citation
-superset. Source omissions are allowed unless the written claim is unsupported.
-The model is not asked to assess word counts: the program checks the full biography.
-A changed summary, source or editorial policy invalidates that review. The source
-sentence segmentation remains unchanged.
-
-Defaults are one content revision, review ceilings of 1024/2048 tokens, revision
-ceilings of 512/1024, and two format attempts per stage. The CLI can explicitly
-request two revisions. Successful version-1 caches retain their version and are
-reused if their original strict no-issue review, hashes, policy, and verbatim quotes
-still validate. A new manifest's `summary_review_version: 2` records the latest
-repair implementation, not necessarily every reused record's version. Failed old
-reviews remain diagnostic logs and are not converted into passed reviews.
-
-Top-level `raw_model_response` and `generation_attempts` retain initial-generation
-provenance. Revised text and raw editor responses are tracked in `summary_review`;
-do not treat the initial raw response as the final biography. Prior length edits
-remain in `initial_draft`; a new length adjustment, if used, belongs to the revision.
-
-`refine_biographies.py` derives a separate run without copying old PDFs. It adds
-`original_summaries/` and `refinement_origin.json` (source path, manifest hash,
-input fingerprint, per-input file hashes and preparation time). The original run
-is not edited. The derived manifest retains original image runtime/provenance,
-adds `refinement_origin`, and records refinement runtime in `summary_repairs`.
-Enabled review/version/revision-limit settings are persisted in `configuration`.
-
-The status deliberately says **model_verified**, not factually correct: this is
-same-model feedback, not an independent accuracy measurement or human review.
+Acceptance still requires valid biography text, length, source provenance,
+and evidence IDs/sentences. These are mechanical checks, not semantic entailment
+or factual accuracy checks.
 
 ## `generation_metadata/<person>.json`
 

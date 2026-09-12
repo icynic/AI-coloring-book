@@ -141,8 +141,6 @@ best result from multiple seeds.
 - `Fetcher.py` — Wikipedia article text, portrait, revision, and license retrieval.
 - `source_text.py` — deterministic, bounded selection of article paragraphs.
 - `Summarizer.py` — grounded Qwen3.5 biography generation.
-- `summary_review.py` — source-grounded feedback, bounded revision, and mechanical acceptance.
-- `refine_biographies.py` — refine text/PDFs in a separate run without fetching or FLUX.
 - `GeneratorFlux2KleinL4Colab.py` — final FLUX image editor.
 - `Concatenator.py` — individual and multi-page A4 PDF rendering.
 - `Generator.py` — SD1.5 + ControlNet evaluation baseline.

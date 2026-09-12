@@ -10,6 +10,12 @@ from Summarizer import Summarizer
 
 
 class PipelineHelpersTest(unittest.TestCase):
+    def test_model_self_review_is_not_part_of_the_public_api(self):
+        args = parse_args([])
+        self.assertFalse(hasattr(args, "verify_summaries"))
+        self.assertFalse(hasattr(args, "max_review_revisions"))
+        self.assertFalse(hasattr(Summarizer, "refine_with_evidence"))
+
     def test_slugify_and_name_deduplication(self):
         args = parse_args(["--names", "Marie Curie", "marie curie", "Max Planck"])
         self.assertEqual(get_names(args), ["Marie Curie", "Max Planck"])
@@ -102,6 +108,8 @@ class PipelineHelpersTest(unittest.TestCase):
             self.assertTrue((run_dir / "pages/Test_Person.pdf").exists())
             self.assertTrue((run_dir / "manifest.json").exists())
             self.assertEqual(manifest["items"][0]["errors"], [])
+            for key in ("verify_summaries", "summary_review_version", "max_review_revisions"):
+                self.assertNotIn(key, manifest["configuration"])
 
 
 if __name__ == "__main__":
