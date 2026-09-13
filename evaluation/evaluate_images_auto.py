@@ -13,6 +13,9 @@ import csv
 from datetime import datetime, timezone
 import hashlib
 import json
+import itertools
+import random
+import statistics
 from pathlib import Path
 import platform
 import sys
@@ -26,12 +29,42 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
-from evaluation.analyze_evaluation import (  # noqa: E402
-    bootstrap_ci,
-    exact_sign_flip_p,
-    mean,
-    sample_sd,
-)
+def mean(values):
+    return statistics.fmean(values) if values else None
+
+
+def sample_sd(values):
+    return statistics.stdev(values) if len(values) > 1 else 0.0
+
+
+def exact_sign_flip_p(differences):
+    nonzero = [value for value in differences if value != 0]
+    if not nonzero:
+        return 1.0
+    if len(nonzero) > 20:
+        raise ValueError("Exact sign-flip test supports at most 20 non-zero pairs.")
+    observed = abs(mean(nonzero))
+    total = 2 ** len(nonzero)
+    extreme = 0
+    for signs in itertools.product((-1, 1), repeat=len(nonzero)):
+        statistic = abs(mean([sign * value for sign, value in zip(signs, nonzero)]))
+        if statistic >= observed - 1e-12:
+            extreme += 1
+    return extreme / total
+
+
+def bootstrap_ci(differences, seed=42, repetitions=10000):
+    if not differences:
+        return [None, None]
+    rng = random.Random(seed)
+    estimates = []
+    for _ in range(repetitions):
+        sample = [rng.choice(differences) for _ in differences]
+        estimates.append(mean(sample))
+    estimates.sort()
+    lower = estimates[int(0.025 * (repetitions - 1))]
+    upper = estimates[int(0.975 * (repetitions - 1))]
+    return [lower, upper]
 
 
 METHODS = ("flux_final", "sd15_controlnet")
@@ -347,7 +380,7 @@ def write_markdown(path: Path, summary_rows: list[dict], embedding_used: bool) -
     lines = [
         "# Automatic image evaluation",
         "",
-        "All measurements use the eight frozen Marburg subjects and paired FLUX–SD1.5 outputs.",
+        "Measurements use the supplied subject list and paired FLUX–SD1.5 outputs. Consult the manifest for the exact run and inputs.",
         "Pixel metrics were calculated after aspect-preserving resize and white padding to 512×512.",
         "",
         "| Metric | Direction | FLUX mean | SD1.5 mean | Difference | 95% bootstrap CI | p | FLUX wins |",

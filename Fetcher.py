@@ -116,21 +116,6 @@ def _fetch_article_text(session, revision_id, page_id):
     }
 
 
-def refresh_person_text(source):
-    """Text-only recovery; never request an image or change portrait metadata."""
-    # Bound transient retries; a 429 is reported immediately instead of waiting
-    # on repeated Retry-After delays. Rerun later if Wikimedia rate-limits this IP.
-    with requests.Session() as session:
-        session.headers.update({"User-Agent": USER_AGENT})
-        session.mount("https://", HTTPAdapter(max_retries=Retry(
-            total=2, connect=2, read=1, status=2, backoff_factor=1,
-            status_forcelist=(500, 502, 503, 504),
-            allowed_methods=frozenset({"GET"}), respect_retry_after_header=False,
-        )))
-        text = _fetch_article_text(session, source.get("revision_id"), source.get("page_id"))
-    return {**source, **text}
-
-
 def _fetch_page_metadata(session: requests.Session, title: str) -> dict:
     """Return the exact Wikipedia revision and Wikimedia image attribution."""
     response = _get(

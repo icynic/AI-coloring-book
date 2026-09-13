@@ -1,188 +1,108 @@
 # AI Coloring Book
 
-AI Coloring Book is a reproducible pipeline that turns a list of historical
-figures into printable biographical coloring-book pages. It retrieves grounded
-source material from English Wikipedia, writes a child-oriented biography with
-Qwen3.5-4B, edits the source portrait into line art with FLUX.2 [klein] 4B, and
-renders individual pages plus a combined A4 PDF book.
+A single end-to-end pipeline turns historical figures into an A4 coloring book:
+Wikipedia article prose and portrait → Qwen3.5-4B biography → FLUX.2 [klein] 4B
+line art → individual PDFs, combined PDF and reproducibility manifest.
 
-[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/icynic/AI-coloring-book/blob/main/colab/AIColoringBook.ipynb)
+[Open the notebook in Colab](https://colab.research.google.com/github/icynic/AI-coloring-book/blob/main/colab/AIColoringBook.ipynb)
 
-## Final system
+## Run the complete book in Colab
 
-```text
-Names
-  -> bounded Wikipedia article prose, exact revision, portrait, and license metadata
-  -> Qwen/Qwen3.5-4B grounded biography and supporting sentence IDs
-  -> release Qwen GPU memory
-  -> black-forest-labs/FLUX.2-klein-4B portrait-to-line-art editing
-  -> individual A4 pages, combined PDF, and reproducibility manifest
-```
+Sync the current code to GitHub first, then open `colab/AIColoringBook.ipynb`,
+choose a GPU runtime and run all cells. The default preset targets a free T4:
+Qwen 4-bit, FLUX 8-bit, FP16 compute on T4, 640px maximum image side and four
+image-generation steps. Qwen and FLUX load sequentially.
 
-The text and image models are deliberately loaded in separate stages. They do
-not need to fit in GPU memory at the same time.
+The only shipped subject list is `evaluation/subjects.csv`. Its current eight
+names are Otto Hahn, Robert Bunsen, Emil von Behring, Jacob Grimm, Hannah Arendt,
+Ferdinand Braun, Alfred Wegener and Boris Pasternak. Braun's exact Wikipedia
+query is `K. Ferdinand Braun`. The notebook reads this list directly.
 
-## Recommended: Google Colab
+The new complete run writes to
+`/content/drive/MyDrive/AIColoringBook/final_run_v2`. It does not merge pages from
+older runs. First-time model downloads can take substantial time.
 
-The notebook defaults to `T4_SAFE_MODE`, designed for a free Colab T4 with 16GB
-VRAM. It uses Qwen 4-bit, FLUX 8-bit, a 640px maximum image side, and a 256-token
-prompt sequence. An L4 can use the unquantized configuration by setting
-`T4_SAFE_MODE = False`. Edit the `NAMES` list and run all cells. Google Drive
-output is enabled by default so a disconnected runtime can resume from
-completed stages.
+If Pillow imports fail after installation, use Runtime > Restart session,
+then rerun the notebook. See [the Colab runbook](docs/COLAB.md).
 
-The first run downloads the model weights and takes substantially longer than
-subsequent runs. CPU offload is retained as a last-resort fallback because free
-Colab system RAM and GPU-to-CPU transfer speed may be limiting.
+## Command line
 
-If Colab reports a Pillow/PIL import mismatch immediately after dependency
-installation, choose **Runtime > Restart session** and run all cells again. The
-downloaded source records and Google Drive checkpoints remain available.
-
-## Command-line use
-
-Colab already provides a CUDA-enabled PyTorch installation. Install the pinned
-project environment with:
+Install the environment on a CUDA-capable machine or Colab:
 
 ```bash
-pip install -r requirements-colab.txt
+python -m pip install -r requirements-colab.txt
+python main.py --output-dir output/final_run_v2 --t4-safe-mode --no-fuzzy-search
 ```
 
-Run two people end to end:
+With no names specified, `main.py` uses the same current eight-person CSV.
+Use `--names "Otto Hahn" "K. Ferdinand Braun"` to override it, or
+`--names-file people.txt` for a user-provided UTF-8 list.
 
-```bash
-python main.py \
-  --names "Marie Curie" "Albert Einstein" \
-  --output-dir output/final_run \
-  --t4-safe-mode \
-  --seed 42
-```
+Rerun the same command and directory to resume. Completed sources, valid
+summaries and image outputs are reused. The run configuration is saved before
+downloads begin. Old-format runs, changed settings and unknown nonempty
+directories are rejected: choose a new directory instead. `--force` explicitly
+regenerates all stages in a compatible run.
 
-Use a UTF-8 file with one name per line for larger runs:
-
-```bash
-python main.py --names-file people.txt --output-dir output/final_run
-```
-
-Existing source and image files and validated summaries are reused automatically.
-PDFs are rebuilt from the current validated text. Pass `--force` only when all
-stages should be regenerated. Run `python main.py --help` for quantization,
-offload, image-size, and stage-skipping options.
-
-To repair an existing book containing placeholder biographies such as `...`,
-sync the updated code and set `REPAIR_SUMMARIES_ONLY = True` in the Colab
-notebook, or run:
-
-```bash
-python main.py --repair-summaries --output-dir output/evaluation_flux_t4
-```
-
-This regenerates invalid summaries and rebuilds PDFs using the saved source
-text and FLUX images; no Wikipedia requests or FLUX inference are performed.
-Replaced artifacts are backed up first. See [the recovery runbook](docs/COLAB.md)
-for the Drive command, validation checks, and read-only inspection.
-If complete biographies are rejected only for being slightly short, repair can
-explicitly override the length criterion with `--summary-min-words 60
---summary-max-words 110`. The change is recorded for evaluation transparency;
-omitted bounds inherit the saved range. It does not disable other validation.
-
-If an old source contains only a one-line introduction, upgrade the source first:
-
-```bash
-python main.py --refresh-source-text --repair-summaries --output-dir output/evaluation_flux_t4 --summary-min-words 80 --summary-max-words 110
-```
-
-This reads article prose at the original revision, backs up old source records,
-and regenerates summaries whose input text changed. It never redownloads or
-regenerates images. Use `--refresh-source-text` alone for CPU-only text recovery.
-See the runbook above for the Colab switches and source-selection policy.
-
-If generation already saved a complete answer but rejected it for a small word
-count overshoot, `--repair-summaries --offline-repair` can recover the final logged
-answer and rebuild the book without loading models. Source provenance and all
-validation checks still apply. The unedited model answer and any removed tail
-sentences are retained for audit; see the recovery runbook for limitations.
+There is no model reviewer, summary-only repair, failure-log recovery, source
+refresh, separate demonstration exporter or replacement notebook. The normal
+summarizer retains up to two attempts for deterministic JSON/length/evidence
+validation. A modest length overshoot may be shortened at a complete sentence
+boundary, with the original answer and removed tail retained.
 
 ## Outputs
 
-Each run directory contains:
-
 ```text
-sources/                 Wikipedia records and downloaded portraits
-summaries/               generated biographies and supporting source sentences
-generated_images/        FLUX coloring-page images
-generation_metadata/     prompts, seeds, latency, dimensions, and peak VRAM
-pages/                    one PDF per person
-coloring_book.pdf         combined book
-manifest.json             runtime, configuration, file paths, and failures
+sources/                 selected article text, revisions, portraits, attribution
+summaries/               biographies, raw answers and supporting source sentences
+generated_images/        FLUX line drawings
+generation_metadata/     prompts, seeds, dimensions, runtime and VRAM
+pages/                   one PDF per figure
+coloring_book.pdf         combined A4 book
+manifest.json            configuration, runtime, paths and per-person errors
+summary_failures/        diagnostic logs only, if generation fails
 ```
 
-The exact Wikipedia revision and the portrait's Wikimedia license, artist, and
-credit are retained in every source record. Generated pages are labelled as
-AI-generated and include a source link. Publication outside the research
-prototype still requires a manual license and factual review.
+An incomplete book is never advertised as successful. Failed items remain in
+the manifest. Rerun the normal pipeline to retry them; logs are not promoted
+into accepted summaries. See [output metadata](docs/OUTPUT_SCHEMA.md).
 
-## Reproducibility
+## Core files
 
-- Dependency versions and the exact Qwen/FLUX Hugging Face revisions are pinned.
-- The default seed is `42`; person `n` receives seed `42 + n`.
-- Failed samples are recorded rather than silently removed.
-- Intermediate results are written atomically and form resumable checkpoints.
-- `manifest.json` records the GPU, PyTorch version, model IDs, run configuration,
-  source revisions, and output paths.
+- `main.py`: stages, CLI, checkpoints and manifest.
+- `Fetcher.py`, `source_text.py`: revision-bound Wikipedia source and portrait.
+- `Summarizer.py`, `summary_validation.py`: grounded generation and validation.
+- `GeneratorFlux2KleinL4Colab.py`: FLUX generator, also supporting the T4 preset.
+- `Concatenator.py`: A4 PDF rendering.
+- `colab/AIColoringBook.ipynb`: the sole full-run notebook.
+- `tests/`: model-free regression tests.
 
-For a clean rerun, use a new output directory. For the final evaluation, freeze
-the subject list and configuration before generating outputs; do not select the
-best result from multiple seeds.
+## Evaluation and existing material
 
-## Repository map
+Baseline and automatic evaluation remain because the final report requires
+evaluation: see [evaluation/README.md](evaluation/README.md).
+`Generator.py` is used by the SD1.5 + ControlNet baseline, not the final pipeline.
 
-- `main.py` — complete staged pipeline and CLI.
-- `Fetcher.py` — Wikipedia article text, portrait, revision, and license retrieval.
-- `source_text.py` — deterministic, bounded selection of article paragraphs.
-- `Summarizer.py` — grounded Qwen3.5 biography generation.
-- `GeneratorFlux2KleinL4Colab.py` — final FLUX image editor.
-- `Concatenator.py` — individual and multi-page A4 PDF rendering.
-- `Generator.py` — SD1.5 + ControlNet evaluation baseline.
-- `colab/AIColoringBook.ipynb` — final Colab entry point.
-- `tests/` — model-free control-flow and PDF smoke tests.
+Existing outputs, model weights, source pictures and presentation/research
+material are retained. The completed original eight-person evaluation is
+unchanged; its scores and claim annotations do not describe the new subject
+list. Two demonstration subjects were changed after inspecting results;
+disclose that selection and do not present it as an untouched preregistered
+evaluation.
 
-## Tests
-
-The default tests do not download or load either large model:
+## Tests and limitations
 
 ```bash
 python -m unittest discover -s tests -v
 ```
 
-An actual end-to-end GPU run is intentionally performed in Colab because image
-generation is hardware-dependent.
+Tests do not download or load the large models. Full GPU inference still runs
+in Colab. Evidence IDs and word counts do not prove factual accuracy or
+suitability for children; check the final text and each portrait's recorded
+license/attribution before redistribution. Automatic image measurements are
+proxies, not independent human preference or face-recognition accuracy.
 
-## Evaluation
-
-The frozen evaluation set contains eight historical figures with documented
-connections to Philipps-Universität Marburg. The Colab notebook loads this set
-from `evaluation/subjects.txt` by default. The `evaluation/` directory also
-contains a local SD1.5 + ControlNet baseline runner, reproducible A/B
-randomization, human-rating templates, and exact paired statistical analysis.
-See `evaluation/README.md` for the complete protocol.
-
-For optional source-grounded Qwen checking and revision, use the separate-run
-entry point in `docs/COLAB.md`. Frozen experiment outputs remain unchanged.
-Model self-checks are implementation feedback, not independent evaluation.
-
-## Known limitations
-
-- FLUX can simplify or alter identity-relevant facial and clothing details.
-- Supporting sentence IDs make the biography auditable but do not guarantee
-  factual correctness; final pages require human verification.
-- Wikipedia lead images have heterogeneous quality and licenses.
-- The final system is designed for historical figures with a clear lead portrait.
-- A Colab GPU and network access are required for the complete uncached run.
-
-## Models and licenses
-
-- [Qwen3.5-4B](https://huggingface.co/Qwen/Qwen3.5-4B) — Apache 2.0.
-- [FLUX.2 klein 4B](https://huggingface.co/black-forest-labs/FLUX.2-klein-4B) — Apache 2.0.
-- Wikipedia text and Wikimedia images retain their own attribution and license
-  requirements; inspect the saved metadata before redistribution.
+The pinned [Qwen3.5-4B](https://huggingface.co/Qwen/Qwen3.5-4B) and
+[FLUX.2 klein 4B](https://huggingface.co/black-forest-labs/FLUX.2-klein-4B)
+models have their own licenses. Wikipedia text and portraits retain their
+source licensing requirements.

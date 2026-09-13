@@ -7,21 +7,20 @@ Qwen and FLUX never need to occupy GPU memory at the same time.
 from __future__ import annotations
 
 import argparse
+import csv
 from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
 import platform
 import re
-import shutil
 import sys
 
 import torch
 
 from Concatenator import Concatenator
-from Fetcher import get_person_info, refresh_person_text
+from Fetcher import get_person_info
 from source_text import SOURCE_POLICY_VERSION, text_sha256
-from summary_recovery import recover_failed_summary
 from summary_validation import validate_summary
 
 
@@ -64,7 +63,10 @@ def get_names(args):
         )
     deduplicated = []
     seen = set()
-    for name in names or ["Marie Curie"]:
+    if not names:
+        with (Path(__file__).parent / "evaluation/subjects.csv").open(encoding="utf-8", newline="") as stream:
+            names = [row["name"] for row in csv.DictReader(stream)]
+    for name in names:
         if name.casefold() not in seen:
             deduplicated.append(name)
             seen.add(name.casefold())
@@ -114,20 +116,6 @@ def ensure_run_directories(run_dir, create=True):
     return paths
 
 
-def backup_existing(paths, path):
-    """Keep the original evaluation artifacts before replacing any content."""
-    path = Path(path)
-    if not path.exists():
-        return
-    if "backup" not in paths:
-        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
-        paths["backup"] = paths["run"] / "backups" / stamp
-    destination = paths["backup"] / path.relative_to(paths["run"])
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    if not destination.exists():
-        shutil.copy2(path, destination)
-
-
 def load_valid_summary(record, paths, args):
     summary_path = paths["summaries"] / f"{record['slug']}.json"
     summary = read_json(summary_path)
@@ -144,7 +132,7 @@ def load_valid_summary(record, paths, args):
 
 
 def resolve_summary_word_range(args, saved_range=(80, 110)):
-    """Only inherit unspecified bounds; never discard explicit CLI overrides."""
+    """Validate the biography length configured for this run."""
     lower = args.summary_min_words if args.summary_min_words is not None else saved_range[0]
     upper = args.summary_max_words if args.summary_max_words is not None else saved_range[1]
     if type(lower) is not int or type(upper) is not int or not 1 <= lower <= upper:
@@ -163,7 +151,8 @@ def fetch_stage(names, paths, force=False, fuzzy_search=True):
         cache_is_complete = bool(
             cached_source
             and cached_source.get("summary")
-            and cached_source.get("source_text_sha256")
+            and cached_source.get("source_policy_version") == SOURCE_POLICY_VERSION
+            and cached_source.get("source_text_sha256") == text_sha256(cached_source["summary"])
             and cached_image
             and Path(cached_image).exists()
             and cached_source.get("image_sha256")
@@ -171,8 +160,6 @@ def fetch_stage(names, paths, force=False, fuzzy_search=True):
         if cache_is_complete and not force:
             source = cached_source
             print(f"[fetch] Reusing {metadata_path}")
-            if source.get("source_policy_version") != SOURCE_POLICY_VERSION:
-                print("[fetch] Legacy lead-only cache. Use --refresh-source-text to upgrade the saved article text.")
         else:
             print(f"[fetch] {query}")
             source = get_person_info(
@@ -218,21 +205,6 @@ def summarization_stage(records, paths, args):
             invalid_reason = str(exc)
             if summary_path.exists():
                 print(f"[summarize] Rejecting cache for {record['query']}: {exc}")
-        if invalid_reason and args.repair_summaries and not args.force:
-            try:
-                recovered = recover_failed_summary(record, paths["run"], args.summary_min_words, args.summary_max_words)
-                backup_existing(paths, summary_path)
-                write_json(summary_path, recovered)
-                record["summary"] = recovered
-                invalid_reason = None
-                print(f"[summarize] Recovered saved answer for {record['query']} ({recovered['word_count']} words); no model loaded")
-            except FileNotFoundError:
-                pass
-            except (OSError, ValueError, KeyError, TypeError) as exc:
-                print(f"[summarize] Saved failure cannot be reused for {record['query']}: {exc}")
-        if invalid_reason and args.offline_repair:
-            record["errors"].append(f"Offline repair could not recover a valid summary: {invalid_reason}")
-            continue
         if (invalid_reason or args.force) and not args.skip_summarization and record["source"].get("summary"):
             record.pop("summary", None)
             pending.append(record)
@@ -271,14 +243,12 @@ def summarization_stage(records, paths, args):
                     )
                     validate_summary(summary, record["source"]["summary"],
                                      args.summary_min_words, args.summary_max_words)
-                    backup_existing(paths, summary_path)
                     write_json(summary_path, summary)
                     record["summary"] = summary
                 except Exception as exc:
                     record["errors"].append(f"Summarization failed: {exc}")
                     print(f"[summarize] Failed for {record['query']}: {exc}")
                     failure_path = paths["run"] / "summary_failures" / f"{record['slug']}.json"
-                    backup_existing(paths, failure_path)
                     write_json(failure_path, {
                         "created_at": utc_now(), "error": str(exc),
                         "attempts": getattr(exc, "attempts", []),
@@ -308,7 +278,7 @@ def image_generation_stage(records, paths, args):
     elif pending and not torch.cuda.is_available() and not args.allow_cpu:
         raise RuntimeError(
             "FLUX generation requires a CUDA runtime for the final prototype. "
-            "Use Google Colab with an L4 GPU, or pass --allow-cpu for an impractical CPU run."
+            "Use Google Colab with a T4 or L4 GPU, or pass --allow-cpu for an impractical CPU run."
         )
 
     generator = None
@@ -410,8 +380,7 @@ def pdf_stage(records, paths, args):
         }
         page_path = paths["pages"] / f"{record['slug']}.pdf"
         # PDFs are cheap to rebuild, and depend on both current text and images.
-        # Existence alone cannot detect stale PDFs after a summary repair.
-        backup_existing(paths, page_path)
+        # Existence alone cannot detect stale PDFs after changed text.
         print(f"[pdf] {source['title']}")
         if not concatenator.create_book([page], page_path):
             record["errors"].append("PDF page creation failed.")
@@ -424,7 +393,6 @@ def pdf_stage(records, paths, args):
         return None
 
     book_path = paths["run"] / "coloring_book.pdf"
-    backup_existing(paths, book_path)
     print(f"[pdf] Combined book with {len(book_pages)} page(s)")
     if not concatenator.create_book(book_pages, book_path):
         return None
@@ -444,19 +412,31 @@ def manifest_record(record):
     }
 
 
+def run_configuration(args, names):
+    keys = ("qwen_model", "qwen_revision", "qwen_quantization", "flux_model",
+            "flux_revision", "flux_quantization", "flux_steps", "guidance_scale",
+            "max_side", "max_sequence_length", "flux_offload", "vae_tiling",
+            "seed", "target_age", "t4_safe_mode", "no_fuzzy_search")
+    return {"names": names, **{key: getattr(args, key) for key in keys},
+            "summary_word_range": [args.summary_min_words, args.summary_max_words]}
+
+
 def run_pipeline(args):
-    if args.refresh_source_text:
-        refresh = refresh_sources(args)
-        if args.check_only or not args.repair_summaries:
-            return refresh
-        if refresh["errors"]:
-            raise SystemExit("Source refresh is incomplete. Qwen/FLUX were not loaded; inspect source_refresh_manifest.json.")
-    if args.repair_summaries:
-        return repair_summaries(args)
     started_at = utc_now()
     names = get_names(args)
     run_dir = Path(args.output_dir).resolve()
+    configuration = run_configuration(args, names)
+    manifest_path = run_dir / "manifest.json"
+    if manifest_path.exists():
+        previous = read_json(manifest_path)
+        if previous.get("schema_version") != 2 or previous.get("configuration") != configuration:
+            raise ValueError("Existing run uses older code or different settings. Choose a new output directory.")
+    elif run_dir.exists() and any(run_dir.iterdir()):
+        raise ValueError("Nonempty output has no current run manifest. Choose a new output directory.")
     paths = ensure_run_directories(run_dir)
+    # Save the configuration before downloads/models so interrupted runs can resume.
+    write_json(manifest_path, {"schema_version": 2, "started_at": started_at,
+                               "configuration": configuration, "book_path": None, "items": []})
     print(f"Run directory: {run_dir}")
     print(f"People: {', '.join(names)}")
     print(f"Summary word range: {args.summary_min_words}-{args.summary_max_words}")
@@ -472,188 +452,19 @@ def run_pipeline(args):
     book_path = pdf_stage(records, paths, args)
 
     manifest = {
-        "schema_version": 1,
+        "schema_version": 2,
         "started_at": started_at,
         "completed_at": utc_now(),
         "runtime": runtime_info(),
-        "configuration": {
-            "names": names,
-            "qwen_model": args.qwen_model,
-            "qwen_revision": args.qwen_revision,
-            "qwen_quantization": args.qwen_quantization,
-            "flux_model": args.flux_model,
-            "flux_revision": args.flux_revision,
-            "flux_quantization": args.flux_quantization,
-            "flux_steps": args.flux_steps,
-            "guidance_scale": args.guidance_scale,
-            "max_side": args.max_side,
-            "seed": args.seed,
-            "target_age": args.target_age,
-            "summary_word_range": [args.summary_min_words, args.summary_max_words],
-            "t4_safe_mode": args.t4_safe_mode,
-        },
+        "configuration": configuration,
         "book_path": str(book_path) if book_path else None,
         "items": [manifest_record(record) for record in records],
     }
-    manifest_path = run_dir / "manifest.json"
-    backup_existing(paths, manifest_path)
     write_json(manifest_path, manifest)
     print(f"Manifest: {manifest_path}")
     if book_path:
         print(f"Final book: {book_path}")
     return manifest
-
-
-def refresh_sources(args):
-    """Upgrade text checkpoints at their original revisions, without any models/images."""
-    import requests
-
-    run_dir = Path(args.output_dir).resolve()
-    paths = ensure_run_directories(run_dir, create=False)
-    manifest_path = run_dir / "manifest.json"
-    original = read_json(manifest_path)
-    names = original["configuration"]["names"]
-    if not names:
-        raise ValueError("The saved manifest contains no subjects.")
-    pending = []
-    for name in names:
-        source_path = paths["source"] / f"{slugify(name)}.json"
-        source = read_json(source_path)
-        current = (source.get("source_policy_version") == SOURCE_POLICY_VERSION
-                   and source.get("source_text_sha256") == text_sha256(source.get("summary") or "")
-                   and bool(source.get("source_passages")))
-        words = len((source.get("summary") or "").split())
-        print(f"[source] {name}: {words} words; {'current article cache' if current else 'needs article text'}")
-        if not current:
-            pending.append((name, source_path, source))
-    if args.check_only:
-        return {"pending_source_refreshes": [name for name, _, _ in pending], "subjects": len(names), "errors": []}
-
-    report = {"started_at": utc_now(), "source_policy_version": SOURCE_POLICY_VERSION,
-              "items": [], "errors": []}
-    updated = dict(original)
-    updated["source_refreshes"] = [*original.get("source_refreshes", []), report]
-    if pending:
-        # Invalidate the book pointer BEFORE changing text, including interrupted runs.
-        # The actual old PDFs, summaries and all images remain untouched.
-        updated["book_path"] = None
-    backup_existing(paths, manifest_path)
-    backup_existing(paths, run_dir / "source_refresh_manifest.json")
-    write_json(manifest_path, updated)
-    rate_limited = False
-    for name, source_path, source in pending:
-        item = {"query": name, "source_revision_id": source.get("revision_id"),
-                "previous_source_text_sha256": source.get("source_text_sha256"),
-                "previous_word_count": len((source.get("summary") or "").split())}
-        try:
-            if rate_limited:
-                raise ValueError("Deferred after Wikimedia HTTP 429. Retry the refresh later.")
-            replacement = refresh_person_text(source)
-            if (replacement.get("revision_id"), replacement.get("page_id")) != (source.get("revision_id"), source.get("page_id")):
-                raise ValueError("Text recovery must preserve the saved page and revision.")
-            backup_existing(paths, source_path)
-            write_json(source_path, replacement)
-            item.update({"source_text_sha256": replacement["source_text_sha256"],
-                         "word_count": replacement["source_word_count"],
-                         "sections": list(dict.fromkeys(p["section"] for p in replacement["source_passages"])),
-                         "status": "updated"})
-            print(f"[source] {name}: {item['previous_word_count']} -> {item['word_count']} words; images unchanged")
-            for record in updated.get("items", []):
-                if record.get("query") == name:
-                    record.pop("pdf_path", None)
-                    record["errors"] = ["Source text updated; regenerate the biography and PDF with --repair-summaries."]
-        except (requests.RequestException, OSError, ValueError) as exc:
-            rate_limited = rate_limited or getattr(getattr(exc, "response", None), "status_code", None) == 429
-            item.update({"status": "failed", "error": str(exc)})
-            report["errors"].append(f"{name}: {exc}")
-            print(f"[source] Failed for {name}: {exc}; original source kept")
-        report["items"].append(item)
-        write_json(manifest_path, updated)
-        write_json(run_dir / "source_refresh_manifest.json", report)
-    report["completed_at"] = utc_now()
-    write_json(manifest_path, updated)
-    write_json(run_dir / "source_refresh_manifest.json", report)
-    print(f"[source] Refreshed {sum(item['status'] == 'updated' for item in report['items'])} source(s); "
-          f"{len(report['errors'])} error(s). No Qwen or FLUX inference was performed in this stage.")
-    return report
-
-
-def repair_summaries(args):
-    """Recover an existing run with no Wikipedia calls or FLUX initialization."""
-    run_dir = Path(args.output_dir).resolve()
-    manifest_path = run_dir / "manifest.json"
-    original = read_json(manifest_path)
-    config = original["configuration"]
-    # Preserve the experiment's actual Qwen configuration and image provenance.
-    for key in ("qwen_model", "qwen_revision", "qwen_quantization", "target_age"):
-        if key in config:
-            setattr(args, key, config[key])
-    previous_word_range = config.get("summary_word_range", [80, 110])
-    word_range = resolve_summary_word_range(args, previous_word_range)
-    print(f"[repair] Summary word range: {word_range[0]}-{word_range[1]}")
-    if word_range != previous_word_range:
-        print(f"[repair] Explicit length-policy change from {previous_word_range}; this will be recorded.")
-    paths = ensure_run_directories(run_dir, create=not args.check_only)
-    names = config["names"]
-    if not names:
-        raise ValueError("The saved manifest contains no subjects.")
-    records = []
-    invalid = []
-    for name in names:
-        slug = slugify(name)
-        source_path = paths["source"] / f"{slug}.json"
-        source = read_json(source_path)
-        if not source.get("summary"):
-            raise ValueError(f"Saved source text is missing for {name}.")
-        print(f"[check] {name}: {len(source['summary'].split())} source words "
-              f"(policy {source.get('source_policy_version', 1)})")
-        image_path = paths["images"] / f"{slug}.png"
-        if not image_path.is_file():
-            raise FileNotFoundError(f"Saved FLUX image is missing: {image_path}")
-        record = {"query": name, "slug": slug, "source": source, "errors": [],
-                  "source_metadata_path": str(source_path),
-                  "generated_image_path": str(image_path),
-                  "generation_metadata_path": str(paths["generation"] / f"{slug}.json")}
-        try:
-            summary = load_valid_summary(record, paths, args)
-            print(f"[check] {name}: valid ({len(summary['summary'].split())} words)")
-        except (OSError, ValueError) as exc:
-            invalid.append(name)
-            print(f"[check] {name}: needs repair ({exc})")
-        records.append(record)
-    print(f"[check] {len(invalid)}/{len(records)} biographies need regeneration; all saved images are present.")
-    if args.check_only:
-        return {"invalid_summaries": invalid, "subjects": len(records)}
-
-    print("[repair] Reusing saved sources and FLUX images. Loading Qwen only if needed.")
-    started_at = utc_now()
-    summarization_stage(records, paths, args)
-    book_path = pdf_stage(records, paths, args)
-    repair_record = {"started_at": started_at, "completed_at": utc_now(),
-                     "runtime": runtime_info(), "validation_version": 1,
-                     "previous_summary_word_range": previous_word_range,
-                     "summary_word_range": word_range,
-                     "book_path": str(book_path) if book_path else None,
-                     "items": [manifest_record(record) for record in records]}
-    backup_existing(paths, run_dir / "repair_manifest.json")
-    write_json(run_dir / "repair_manifest.json", repair_record)
-    # Keep original image-run timing, runtime, model settings and provenance.
-    # Persist the effective length policy so an ordinary repair resume inherits it.
-    backup_existing(paths, manifest_path)
-    updated = dict(original)
-    updated["configuration"] = {**config, "summary_word_range": word_range}
-    # Retire old self-review settings without erasing the historical artifacts.
-    for key in ("verify_summaries", "summary_review_version", "max_review_revisions"):
-        updated["configuration"].pop(key, None)
-    updated["book_path"] = repair_record["book_path"]
-    updated["items"] = repair_record["items"]
-    updated["summary_repairs"] = [*original.get("summary_repairs", []), repair_record]
-    write_json(manifest_path, updated)
-    if book_path:
-        print(f"[repair] Final book: {book_path}")
-    else:
-        print("[repair] Incomplete. See repair_manifest.json and summary_failures/. Rerun to resume.")
-    return updated
 
 
 def parse_args(argv=None):
@@ -662,7 +473,7 @@ def parse_args(argv=None):
     )
     parser.add_argument("--names", nargs="+", default=None, help="Person names to process.")
     parser.add_argument("--names-file", default=None, help="UTF-8 file with one name per line.")
-    parser.add_argument("--output-dir", default="output/final_run")
+    parser.add_argument("--output-dir", default="output/final_run_v2")
     parser.add_argument("--qwen-model", default=DEFAULT_QWEN_MODEL)
     parser.add_argument("--qwen-revision", default=DEFAULT_QWEN_REVISION)
     parser.add_argument("--qwen-quantization", choices=["none", "8bit", "4bit"], default="none")
@@ -678,22 +489,14 @@ def parse_args(argv=None):
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--target-age", default="10-14")
     parser.add_argument("--summary-min-words", type=int, default=None,
-                        help="Minimum biography words (default: 80; repair inherits the saved range).")
+                        help="Minimum biography words (default: 80).")
     parser.add_argument("--summary-max-words", type=int, default=None,
-                        help="Maximum biography words (default: 110; repair inherits the saved range).")
+                        help="Maximum biography words (default: 110).")
     parser.add_argument("--no-fuzzy-search", action="store_true")
     parser.add_argument("--force", action="store_true", help="Regenerate existing stage outputs.")
     parser.add_argument("--skip-summarization", action="store_true")
     parser.add_argument("--skip-image-generation", action="store_true")
     parser.add_argument("--skip-pdf", action="store_true")
-    parser.add_argument("--repair-summaries", action="store_true",
-                        help="Repair summaries and rebuild PDFs using saved sources/images only.")
-    parser.add_argument("--offline-repair", action="store_true",
-                        help="With --repair-summaries, recover logged answers and rebuild PDFs without loading Qwen.")
-    parser.add_argument("--refresh-source-text", action="store_true",
-                        help="Upgrade saved lead-only sources to bounded article prose; no images/models. Can precede --repair-summaries.")
-    parser.add_argument("--check-only", action="store_true",
-                        help="With repair/refresh, check caches without network, models or writes.")
     parser.add_argument("--allow-cpu", action="store_true", help="Allow impractically slow FLUX CPU inference.")
     parser.add_argument(
         "--t4-safe-mode",
@@ -704,17 +507,10 @@ def parse_args(argv=None):
         ),
     )
     args = parser.parse_args(argv)
-    if args.offline_repair and (not args.repair_summaries or args.refresh_source_text):
-        parser.error("--offline-repair requires --repair-summaries and cannot refresh sources")
-    if args.check_only and not (args.repair_summaries or args.refresh_source_text):
-        parser.error("--check-only requires --repair-summaries or --refresh-source-text")
-    if (args.repair_summaries or args.refresh_source_text) and (args.force or args.skip_summarization or args.skip_pdf):
-        parser.error("Repair/refresh cannot be combined with --force or stage-skipping flags")
-    if not args.repair_summaries:
-        try:
-            resolve_summary_word_range(args)
-        except ValueError as exc:
-            parser.error(str(exc))
+    try:
+        resolve_summary_word_range(args)
+    except ValueError as exc:
+        parser.error(str(exc))
     if args.t4_safe_mode:
         args.qwen_quantization = "4bit"
         args.flux_quantization = "8bit"
@@ -729,10 +525,8 @@ def parse_args(argv=None):
 def main(argv=None):
     args = parse_args(argv)
     result = run_pipeline(args)
-    if args.refresh_source_text and not args.repair_summaries and result.get("errors"):
-        raise SystemExit("Source refresh is incomplete; inspect source_refresh_manifest.json.")
-    if args.repair_summaries and not args.check_only and not result.get("book_path"):
-        raise SystemExit("Summary repair is incomplete; inspect repair_manifest.json before continuing.")
+    if not args.skip_pdf and not result.get("book_path"):
+        raise SystemExit("Run incomplete. Inspect manifest.json; rerun the same command to resume.")
     return result
 
 

@@ -9,13 +9,20 @@ import numpy as np
 from PIL import Image, ImageDraw
 
 from evaluation.evaluate_images_auto import (
+    bootstrap_ci,
     compute_pixel_metrics,
+    exact_sign_flip_p,
     resolve_source_image,
     run,
 )
 
 
 class AutomaticImageEvaluationTest(unittest.TestCase):
+    def test_paired_statistics_are_retained_without_the_human_rating_tools(self):
+        self.assertEqual(exact_sign_flip_p([1.0, 1.0]), 0.5)
+        self.assertEqual(exact_sign_flip_p([0.0, 0.0]), 1.0)
+        self.assertEqual(bootstrap_ci([1.0, 1.0], repetitions=100), [1.0, 1.0])
+
     def test_blank_and_filled_images_have_expected_extremes(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             root = Path(temporary_directory)
