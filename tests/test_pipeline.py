@@ -2,10 +2,14 @@ import ast
 import json
 from pathlib import Path
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock
 
 from PIL import Image
+import torch
+from transformers import GenerationConfig, GPT2Config, GPT2LMHeadModel
+from transformers.pipelines.image_text_to_text import ImageTextToTextPipeline
 
 from main import get_names, load_valid_summary, parse_args, run_configuration, run_pipeline, slugify
 from source_text import text_sha256
@@ -186,6 +190,94 @@ RECORD = {'summary': DRAFT, 'supporting_source_sentence_ids': [1]}
 
 
 class LengthValidationTest(unittest.TestCase):
+    def make_summarizer(self, answers):
+        model = Summarizer.__new__(Summarizer)
+        model.model_name = 'test-model'
+        model.revision = 'test-revision'
+        model.quantization = 'none'
+        model.model_load_seconds = 0
+        model.pipe = Mock(side_effect=[[{'generated_text': answer}] for answer in answers])
+        model.pipe.generation_config = GenerationConfig(
+            max_length=20, do_sample=True, temperature=0.7, top_p=0.8,
+            top_k=20, eos_token_id=[248044, 248046], pad_token_id=None,
+        )
+        return model
+
+    def test_generation_config_is_independent_and_contains_all_overrides(self):
+        model = self.make_summarizer([])
+        base = model.pipe.generation_config
+        config = model._generation_config(1024)
+        self.assertIsNot(config, base)
+        self.assertEqual(base.max_length, 20)
+        self.assertTrue(base.do_sample)
+        self.assertIsNone(base.pad_token_id)
+        self.assertIsNone(config.max_length)
+        self.assertEqual(config.max_new_tokens, 1024)
+        self.assertFalse(config.do_sample)
+        self.assertEqual(config.pad_token_id, 248044)
+        self.assertEqual(config.eos_token_id, [248044, 248046])
+        self.assertEqual((config.temperature, config.top_p, config.top_k), (1.0, 1.0, 50))
+        base.pad_token_id = 123
+        self.assertEqual(model._generation_config(2048).pad_token_id, 123)
+
+    def test_real_transformers_forward_accepts_config_without_generation_warnings(self):
+        # Tiny random CPU model: checks the installed generation API, not Qwen quality.
+        model = Summarizer.__new__(Summarizer)
+        language_model = GPT2LMHeadModel(GPT2Config(
+            vocab_size=16, n_positions=32, n_embd=16, n_layer=1, n_head=2,
+            bos_token_id=1, eos_token_id=2, pad_token_id=2,
+        )).eval()
+        model.pipe = SimpleNamespace(
+            model=language_model,
+            generation_config=GenerationConfig(max_length=20, eos_token_id=2),
+        )
+        config = model._generation_config(3)
+        inputs = {'text': 'test prompt', 'input_ids': torch.tensor([[1, 3]]),
+                  'attention_mask': torch.ones((1, 2), dtype=torch.long)}
+        with self.assertNoLogs('transformers.generation.utils', level='WARNING'):
+            result = ImageTextToTextPipeline._forward(
+                model.pipe, inputs, generate_kwargs={'generation_config': config},
+            )
+        self.assertEqual(result['generated_sequence'].shape[0], 1)
+
+    def test_malformed_json_then_160_words_gets_a_bounded_length_correction(self):
+        overlong = ' '.join(['detail'] * 159 + ['End.'])
+        accepted = fit_summary_length(RECORD, DRAFT, 80, 110)['summary']
+        model = self.make_summarizer([
+            'Here is the biography: not JSON',
+            json.dumps({'summary': overlong, 'supporting_source_sentence_ids': [1]}),
+            json.dumps({'summary': accepted, 'supporting_source_sentence_ids': [1]}),
+        ])
+        result = model.summarize_with_evidence(DRAFT)
+        self.assertEqual(model.pipe.call_count, 3)
+        self.assertEqual(result['word_count'], 98)
+        self.assertEqual(result['prompt_version'], 2)
+        self.assertEqual(result['prompt_constraints'], {
+            'target_words': 95, 'sentence_count': 5, 'words_per_sentence': [18, 20],
+        })
+        calls = model.pipe.call_args_list
+        self.assertEqual([call.kwargs['generate_kwargs']['generation_config'].max_new_tokens
+                          for call in calls], [1024, 2048, 1024])
+        for call in calls:
+            self.assertEqual(set(call.kwargs['generate_kwargs']), {'generation_config'})
+            self.assertFalse(call.kwargs['enable_thinking'])
+        first_prompt = calls[0].kwargs['text'][1]['content'][0]['text']
+        self.assertIn('first character must be {', first_prompt)
+        self.assertIn('5 short sentences', first_prompt)
+        final_feedback = calls[2].kwargs['text'][-1]['content'][0]['text']
+        self.assertIn('160 words, 50 over the hard limit', final_feedback)
+        self.assertIn('Marburg connection', final_feedback)
+        self.assertIn('supported', first_prompt)
+
+    def test_persistent_bad_answers_fail_after_three_attempts(self):
+        from Summarizer import SummaryGenerationError
+
+        model = self.make_summarizer(['not JSON'] * 3)
+        with self.assertRaises(SummaryGenerationError) as failure:
+            model.summarize_with_evidence(DRAFT)
+        self.assertEqual(model.pipe.call_count, 3)
+        self.assertEqual(len(failure.exception.attempts), 3)
+
     def test_actual_115_word_answer_is_trimmed_only_at_sentence_boundary(self):
         result = fit_summary_length(RECORD, DRAFT, 60, 110)
         self.assertEqual(len(DRAFT.split()), 115)

@@ -46,8 +46,9 @@ regenerates all stages in a compatible run.
 
 There is no model reviewer, summary-only repair, failure-log recovery, source
 refresh, separate demonstration exporter or replacement notebook. The normal
-summarizer retains up to two attempts for deterministic JSON/length/evidence
-validation. A modest length overshoot may be shortened at a complete sentence
+summarizer retains up to three attempts for deterministic JSON/length/evidence
+validation. The prompt targets about 95 words in five short sentences for the
+default 80–110 word range. A modest length overshoot may be shortened at a complete sentence
 boundary, with the original answer and removed tail retained.
 
 ## Outputs
@@ -75,7 +76,7 @@ into accepted summaries. See [output metadata](docs/OUTPUT_SCHEMA.md).
 - `GeneratorFlux2KleinL4Colab.py`: FLUX generator, also supporting the T4 preset.
 - `Concatenator.py`: A4 PDF rendering.
 - `colab/AIColoringBook.ipynb`: the sole full-run notebook.
-- `tests/`: model-free regression tests.
+- `tests/`: offline regression tests.
 
 ## Evaluation and existing material
 

@@ -62,6 +62,13 @@ link when complete. No valid book means the run is incomplete: inspect
 `manifest.json` and any diagnostic `summary_failures/`, then rerun the same
 pipeline. There are no separate repair or model self-review cells.
 
+After updating `Summarizer.py`, keep the same eight names, output directory and
+settings, with `FORCE_REGENERATE = False`, and rerun the pipeline cell. Its fresh
+Python process reads the updated code without reinstalling dependencies.
+Previously validated summaries and existing FLUX images are reused; only
+missing or invalid results are regenerated. New summaries record prompt
+version 2; reused summaries retain their original generation metadata.
+
 Inspect all eight PDF pages, biographies and portrait credits before submission.
 Download the entire `final_run_v2` folder, not only its PDF, to preserve sources
 and reproducibility metadata.

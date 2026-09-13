@@ -30,8 +30,18 @@ revision/hash, model ID/revision/quantization and generation/load timing.
 
 `raw_model_response`, `generation_settings` and `generation_attempts` retain
 the original output and any validation retry. Thinking is disabled. At most
-two generation attempts are used for JSON, placeholder, length and evidence
+three generation attempts are used for JSON, placeholder, length and evidence
 validation; there is no model factuality reviewer.
+
+New summaries record `prompt_version: 2` and `prompt_constraints` (target words,
+suggested sentence count and sentence length). The default target is 95 words
+in five roughly 18–20 word sentences; the accepted range remains 80–110.
+All generation overrides use one independent `GenerationConfig`, with no
+competing `max_length` and with a padding token set explicitly when available.
+A malformed answer gets at most twice the original token budget on retry;
+a structurally valid draft uses the original budget for length correction.
+Valid older summaries remain reusable and retain their original metadata;
+prompt versions can therefore differ within a resumed run.
 
 A modest overlength answer can retain an unchanged complete-sentence prefix.
 `length_adjustment` records the original text, word counts and removed tail.
