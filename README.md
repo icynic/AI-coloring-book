@@ -8,10 +8,15 @@ No model is trained or fine-tuned for this project.
 
 ## Start here
 
-- **Inspect the submitted prototype:** open
-  [the completed book](output/final_run_v2/coloring_book.pdf), then its
-  [manifest](output/final_run_v2/manifest.json). No GPU or model download is
-  needed to read the saved files.
+- **Inspect the submitted prototype:** open the
+  [completed coloring book](https://github.com/icynic/AI-coloring-book/releases/download/Output/coloring_book.pdf)
+  and the
+  [final report](https://github.com/icynic/AI-coloring-book/releases/download/Output/ai_coloring_book_report.pdf).
+  No GPU or model download is needed.
+- **Download the complete saved run:** use
+  [final_run_v2.zip](https://github.com/icynic/AI-coloring-book/releases/download/Output/final_run_v2.zip)
+  for the manifest, sources, biographies, generated images, metadata, and
+  individual page PDFs used in the report.
 - **Generate a new book:** follow the [Colab runbook](docs/COLAB.md), including
   its new-directory and two-person smoke-test instructions.
 - **Inspect or recalculate evaluation:** follow
@@ -22,10 +27,11 @@ No model is trained or fine-tuned for this project.
 - **Read the paper source and reproduction appendix:** see
   [the report guide](report/README.md).
 
-`output/` and model weights are not tracked in Git. Links to saved outputs work
-in the delivered workspace/result bundle, not necessarily in a source-only
-GitHub checkout. Keep the supplied result folders at the paths above to inspect
-them locally; they are not downloaded by opening the notebook.
+`output/` and model weights are not tracked in Git. The Release links above are
+the public artifact downloads for a source-only checkout. To run the documented
+local evaluation commands, extract the archive and place its `final_run_v2/`
+directory at `output/final_run_v2/`. Opening the notebook does not download the
+saved run or model weights.
 
 ## Where each task runs
 

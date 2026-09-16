@@ -1,5 +1,9 @@
 # ACL report
 
+The compiled submission PDF is available from the
+[GitHub Release](https://github.com/icynic/AI-coloring-book/releases/download/Output/ai_coloring_book_report.pdf).
+The instructions below rebuild it from source.
+
 The report contains Abstract, Introduction, Related Work, Data and Resources,
 Method, Evaluation, Results, Discussion, Conclusion, and two informative appendices.
 It is a systems-prototype case study, not a newly trained model or a verified
