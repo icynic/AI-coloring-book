@@ -1,0 +1,252 @@
+\documentclass[11pt]{article}
+
+% The unmodified official style is in acl-template/.
+% See README.md for local TeX search-path settings.
+\usepackage[preprint]{acl}
+\usepackage{times}
+\usepackage{latexsym}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\urlstyle{same}
+
+% Working title. Add the actual author information before submission.
+\title{A Resource-Constrained Pipeline for Biographical Coloring Books}
+\author{}
+
+\begin{document}
+\maketitle
+
+% Section draft complete; review the title, authors, and content before submission.
+\begin{abstract}
+Generating a biographical coloring book requires coordinating source retrieval, text adaptation, portrait conversion, and printable layout. We present an automatic, resource-constrained pipeline integrating Wikipedia inputs, Qwen3.5-4B biography generation, FLUX.2-klein-4B portrait editing, and PDF assembly. Low-bit loading, sequential inference, provenance records, and saved intermediate artifacts support execution and resumption on a Google Colab T4. An eight-person case study of historical figures associated with the University of Marburg produces eight complete pages after retries and resumption, without manually revising the outputs. Paired exploratory image measurements against a configured SD1.5-based baseline show greater white space and less midtone content for FLUX, but do not establish portrait identity or coloring usability. All biographies pass mechanical validation, while a single Codex-assisted source audit still identifies unsupported relations, a date error, and conflicting source statements. The prototype demonstrates practical integration and traceability while exposing the gap between successful document generation and semantically reliable content.
+\end{abstract}
+
+\section{Introduction}
+\label{sec:introduction}
+
+A biographical coloring book combines a portrait drawing with a short account of a person's life. Producing such pages involves finding suitable source material, adapting the biography, simplifying the portrait, and arranging both elements into a printable document. This project investigates whether these steps can be integrated into an automatic pipeline that starts from a list of names. We use historical figures associated with the University of Marburg as a concrete case study. The resulting material could support informal engagement with local academic history, but we evaluate the generation process rather than educational effectiveness.
+
+The challenge is not simply to place fluent text beside an attractive image. A biography should remain faithful to its input while meeting length and style constraints, including retaining the person's connection to Marburg. Fluency alone does not establish source faithfulness, a known concern in abstractive summarization \citep{maynez-etal-2020-faithfulness}. A coloring-book portrait should preserve relevant visual characteristics while leaving sufficiently open areas for coloring. Limited GPU memory and interruptible cloud sessions additionally constrain model choice, execution order, and recovery from unsuccessful steps.
+
+We therefore ask two research questions. \textbf{RQ1:} Can existing generative models be integrated into a resource-constrained workflow that produces complete biographical coloring-book pages while preserving source provenance and allowing interrupted runs to resume? \textbf{RQ2:} What do paired image-proxy measurements and a source-grounding audit reveal about the strengths and remaining failures of its automatically generated outputs?
+
+Our implementation retrieves Wikipedia article prose and a portrait, generates a short biography using Qwen3.5-4B \citep{qwen35-4b-model-card}, converts the portrait into line art using FLUX.2-klein-4B \citep{flux2-klein-4b-model-card}, and assembles A4 PDF pages. Quantization and sequential model loading support execution on a Google Colab T4 GPU. Saved intermediate artifacts enable resumption, while revision identifiers, source hashes, prompts, and generation metadata make the outputs inspectable. Deterministic checks validate biography format, length, and evidence references; they do not establish semantic correctness. Here, automatic means that users provide names and settings and may resume a failed run, without manually writing or editing individual biographies or drawings.
+
+The project's contribution is the integrated workflow and layered assessment: mechanical text checks, a post-generation source audit, and paired image proxies against an SD1.5-based ControlNet system \citep{zhang-etal-2023-controlnet}. In the completed eight-person case study, FLUX yields more white space and less midtone content than the baseline, while all biographies pass mechanical checks despite remaining semantic errors. These results concern completion after retries and resumption, not first-pass reliability; they establish neither educational effectiveness nor human preference. The audit diagnoses the unedited outputs rather than improving them.
+
+\section{Related Work}
+\label{sec:related-work}
+
+\subsection{Source-Grounded Text Generation}
+
+Source faithfulness is distinct from fluent expression. \citet{maynez-etal-2020-faithfulness} examine neural abstractive summarization and find content unsupported by the input documents; their analysis also highlights limitations of overlap-based evaluation for measuring faithfulness. This concern applies to our task because rewriting an article into a short biography can change a relationship or chronology without making the sentence linguistically implausible. We prompt Qwen3.5-4B with selected article text and request supporting sentence IDs, but treat those references as traceability metadata rather than proof that each claim follows from its evidence.
+
+FActScore \citep{min-etal-2023-factscore} evaluates long-form generation, including person biographies, by decomposing outputs into atomic facts and measuring the proportion supported by a knowledge source. Its automatic estimator combines retrieval with a language model. Our post-generation audit shares this claim-level perspective but uses a single Codex-assisted review against the saved input, rather than applying FActScore's estimation protocol.
+
+\subsection{Image-to-Line-Art Generation}
+
+Photo-to-drawing methods offer different ways to preserve content while reducing visual detail. Informative Drawings \citep{chan-etal-2022-informative-drawings} learns an unpaired image translation model with objectives for geometry and semantics: a depth-prediction loss and matching of CLIP features between drawings and photographs. CLIPasso \citep{vinker-etal-2022-clipasso} instead represents a sketch as B\'{e}zier curves and optimizes their parameters through differentiable rasterization with a CLIP-based perceptual objective; stroke count controls abstraction. These approaches treat geometric and semantic preservation as drawing objectives; our application additionally targets sparse, unshaded portraits for printable coloring-book pages.
+
+ControlNet \citep{zhang-etal-2023-controlnet} introduces spatial conditioning for pretrained text-to-image diffusion models. Our baseline instantiates this approach using SD1.5, a line-art condition, and an existing line-art LoRA. The final system instead uses FLUX.2-klein-4B, whose official model card describes generation and reference-image editing within one model \citep{flux2-klein-4b-model-card}. We apply editing instructions directly to the source portrait without training a new drawing model. Informative Drawings and CLIPasso are background methods, not additional quantitative baselines; our quantitative comparison is between the configured SD1.5 and FLUX systems.
+
+\subsection{Resource-Constrained Integration}
+
+Low-precision computation provides a precedent for reducing inference memory. LLM.int8() \citep{dettmers-etal-2022-llmint8} combines vector-wise quantization with higher-precision treatment of outlier features for transformer inference. Our pipeline treats memory as an integration constraint, combining low-bit loading and sequential execution with provenance records and resumable stages rather than developing new model components.
+
+\section{Data and Resources}
+\label{sec:data}
+
+\subsection{Case Selection}
+
+We constructed a small, purposively selected Marburg-associated case-study set: Otto Hahn, Robert Bunsen, Emil von Behring, Jacob Grimm, Hannah Arendt, Ferdinand Braun, Alfred Wegener, and Boris Pasternak. University webpages document their study or work connections \citep{marburg-famous-lecturers-students,marburg-arendt-archive}. A project-maintained CSV records names, identifiers, relationship descriptions, and institutional source URLs. These pages establish the selection criterion; they are not the biography generator's input or a reference-answer dataset.
+
+After inspecting earlier image outputs, we replaced Philip I of Hesse and Gertrud von Le Fort with Hahn and Braun. Six subjects overlap with the earlier set, whose results remain separate. The final cases are therefore neither a random sample nor an independently held-out benchmark.
+
+\subsection{Wikipedia Inputs and Preprocessing}
+
+Generation inputs comprise eight English Wikipedia article excerpts and eight article-selected portrait images, retrieved on September 13, 2026. Queries use exact article titles with fuzzy search disabled; Braun's query is \emph{K. Ferdinand Braun}. Article HTML is fetched for a recorded revision through the MediaWiki Action API \citep{mediawiki-parse-api}, while PageImages identifies the article image \citep{mediawiki-pageimages}.
+
+Preprocessing removes tables, lists, navigation, captions, and reference sections, normalizes whitespace, and removes duplicate sentences. A deterministic selector extracts complete sentences within an 800-word budget (Section~\ref{sec:method}). The actual inputs are bounded article prose, not just lead summaries: 797--800 whitespace-separated words per case, totaling 6,390. Source records retain section paths, page and revision identifiers, retrieval timestamps, and SHA-256 hashes of the selected text and saved image. This preserves the evaluated input, not its completeness or historical correctness.
+
+The portrait files are JPEGs with heterogeneous dimensions, including Grimm's 259$\times$294 and Bunsen's 2544$\times$2604 pixels. Both image systems use the same saved files, verified through source paths and audit hashes; their resizing procedures are described in Method. Saved Wikimedia license labels comprise five \emph{Public domain} entries and three CC BY-SA entries. Creator, credit, and license-URL fields are retained where supplied, rather than assumed complete.
+
+\subsection{Generated and Annotated Resources}
+
+The completed collection contains eight generated biographies, eight FLUX drawings, and eight SD1.5 baseline drawings: eight subject pairs, not sixteen independent cases. Individual and combined PDFs and generation metadata are also saved. There is no training split or human-written reference biography, and we do not train models on these cases.
+
+A single Codex-assisted post-generation audit labels 143 checkable propositions against the saved input, linked to evidence IDs and source/summary hashes (Section~\ref{sec:evaluation}). No independent human raters participated, and generated content was not manually corrected. The collection includes accepted cached summaries: only Bunsen records revised prompt version 2, while the other seven lack a prompt-version field. It therefore describes completed artifacts rather than a uniform fixed-prompt batch.
+
+\section{Method}
+\label{sec:method}
+
+\subsection{Pipeline Design}
+
+The system separates retrieval, biography generation, portrait conversion, and PDF assembly into persistent stages. For each name, Wikipedia provides two inputs: selected prose for the text branch and a portrait for the image branch. The branches do not condition on one another: FLUX receives the portrait and drawing instructions, not the generated biography. Their outputs meet at document assembly. Although logically independent, text and image inference execute sequentially to avoid keeping both models in GPU memory. No component is trained or fine-tuned for this project.
+
+\subsection{Source Selection and Evidence Representation}
+
+Retrieval resolves article titles, allowing Wikipedia redirects but disabling fuzzy search in the final configuration. It then fetches HTML for the recorded revision, rejecting a response with a different page or revision identifier. Requests use an identified session, timeouts, pacing, and bounded retries with backoff for rate limits and transient server errors; these mitigate, rather than eliminate, external retrieval failures.
+
+The selector ranks paragraphs by Marburg mentions, lead membership, achievement keywords, and biographical section headings. Within the 800-word budget, each paragraph is limited to 200 words and the lead to 180. Selected complete sentences are restored to article order. This gives the university connection priority but can omit relevant achievements. A shared punctuation-based splitter assigns one-based sentence IDs to the exact saved input, not to Wikipedia citations or independently verified facts.
+
+\subsection{Validation-Guided Biography Generation}
+
+Qwen3.5-4B receives text-only chat messages containing the numbered source sentences. Instructions request an English biography for readers aged 10--14, using only supplied facts, avoiding unsupported padding, and retaining a source-supported Marburg connection. The requested response is one JSON object containing a biography string and supporting source-sentence IDs. For the 80--110-word policy, the current prompt targets about 95 words in five short sentences. Age suitability, achievement coverage, and the Marburg mention are prompt objectives, not hard validation criteria.
+
+Decoding is greedy with thinking disabled. The current implementation permits at most three attempts, initially with a 1,024-token output cap. If no valid draft fields can be parsed, subsequent attempts allow 2,048 tokens. A parsed but invalid draft instead receives the program's validation error and revision instructions at the original cap. This is rule-guided retry, not a model-based factual self-review or constrained JSON decoder.
+
+The parser requires a complete JSON answer, with compatibility handling for a complete code fence or a completed leading thinking block. Validation checks a non-placeholder biography, the word range, non-empty positive-integer evidence IDs within source bounds, and consistency of any stored word counts and supporting sentences. It does not test whether those sentences entail the generated claims.
+
+Before retrying a moderately overlong answer, deterministic postprocessing may retain its longest unchanged complete-sentence prefix within the target range. This is allowed only up to 1.25 times the upper bound, using punctuation and abbreviation heuristics. It never pads a short answer or cuts arbitrary words. Original text and removed tails are recorded; evidence IDs are not reselected, and retained content is not semantically revalidated. Exhausted retries produce an explicit failure record rather than printable placeholder text. These rules describe the current implementation; the accepted cached summaries have the prompt-version limitations reported in Section~\ref{sec:data}.
+
+\subsection{Reference-Portrait Conversion}
+
+FLUX.2-klein-4B uses its reference-image editing interface \citep{flux2-klein-4b-model-card}. Instructions request recognizable portrait characteristics, clean black outlines, unfilled areas, and a white background, while discouraging shading and decorative detail. Avoidance instructions are appended to the editing prompt, not supplied through a separate negative-conditioning channel. There is no automatic image-quality rejection or regeneration loop.
+
+Preprocessing applies EXIF orientation, converts to RGB, and reduces the longest side to at most 640 pixels without upscaling. Dimensions are rounded down to multiples of 16, so aspect ratio is only approximately preserved. Each subject uses seed $42+i$, where $i$ is its zero-based position in the fixed list. The final configuration uses four inference steps, guidance 1.0, and a maximum text sequence length of 256. Model revisions, resolved image prompts, dimensions, seeds, and inference settings are retained in metadata.
+
+\subsection{Resource Management, Recovery, and Assembly}
+
+The full prototype runs in Google Colab on a Tesla T4. Qwen uses 4-bit NF4 quantization \citep{dettmers-etal-2023-qlora} for inference, not QLoRA fine-tuning; FLUX uses 8-bit loading for its transformer and text encoder. After each stage, model references are released, garbage collection runs, and the CUDA cache is cleared. FLUX CPU offloading and VAE tiling are disabled. Its saved floating-point dtype is \emph{torch.bfloat16}, a software record rather than a native T4 arithmetic benchmark.
+
+Source files, accepted biographies, and drawings are saved separately. Resumption requires a matching manifest schema and run configuration. Biography caches undergo the same validation, with source-text hash matching and a revision check when recorded. Existing drawing files are reused by file existence, not semantic inspection. The manifest does not enforce prompt-version uniformity. This recovery policy avoids repeating expensive completed stages but does not guarantee bitwise reproducibility or output correctness.
+
+Before assembly, every requested person must have a validated biography and an existing drawing. Otherwise, the current run is marked incomplete and existing PDFs are not rebuilt. ReportLab creates individual and combined A4 PDFs with a title, proportionally fitted drawing, wrapped biography, source link, and available portrait attribution. It refuses biographies that overflow the text area rather than silently truncating them. Individual files are replaced through temporary outputs only after successful rendering.
+
+\subsection{Image Baseline}
+
+The comparison system combines SD1.5 with a pretrained line-art ControlNet \citep{zhang-etal-2023-controlnet}, the released LineartDetector, and an existing AnimeLineartLoRA checkpoint. It extracts a coarse line-art condition from each saved portrait and generates a drawing using positive coloring-book instructions and a separate negative prompt. Its 15 inference steps, guidance 10.0, and ControlNet conditioning scale 0.6 are fixed across subjects. The parameter named \emph{strength} in the wrapper is this conditioning scale, not image-to-image denoising strength.
+
+Pairs share the source portrait and integer seed, but not the prompt, resizing procedure, or execution hardware; equal seeds do not imply equal noise across models. The baseline first resizes RGB input to width 512 with height rounded down to a multiple of eight. The detector then rescales its shorter side to 512 and aligns dimensions to multiples of 64. It runs locally on an NVIDIA GeForce RTX 3050 Laptop GPU with 4\,GB VRAM, using FP16 diffusion components, a UniPC multistep scheduler, and model CPU offloading. Unlike the final Qwen and FLUX checkpoints, its weight revisions are not pinned. Thus, this is a comparison of two configured systems, not a resolution-matched architecture ablation or a hardware-controlled speed comparison. The subsequent evaluation measures their outputs without feeding results back into generation.
+
+The software entry point is \nolinkurl{main.py}, with a Colab notebook for cloud execution. Appendix~\ref{app:reproducibility} records configurations, prompt templates, commands, artifact locations, and version limits. Appendix~\ref{app:examples} presents all eight unchanged image pairs and the first generated book page; these supplements document the prototype, not additional experiments.
+
+\section{Evaluation}
+\label{sec:evaluation}
+
+\subsection{Scope and Experimental Setup}
+
+RQ1 is assessed through completion records, saved artifacts, and provenance consistency. RQ2 uses automatic image proxies, mechanical biography checks, and a qualitative source-grounding audit. Evaluation concerns the completed collection in Section~\ref{sec:data}, not first-pass success or fresh end-to-end runtime. Each image system contributes one output per subject at its specified seed, without best-of-several selection: eight subject pairs, not sixteen independent samples. Table~\ref{tab:image-settings} summarizes configuration differences; conditioning and resizing are described in Section~\ref{sec:method}.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{@{}lcc@{}}
+\hline
+Setting & FLUX & SD1.5 baseline \\
+\hline
+Hardware & Colab T4 & Local RTX 3050 \\
+Weight loading & 8-bit selected & FP16 \\
+Inference steps & 4 & 15 \\
+Guidance & 1.0 & 10.0 \\
+CPU offload & No & Yes \\
+\hline
+\end{tabular}
+\caption{Configured image systems, not a single-variable ablation. FLUX quantization targets its transformer and text encoder, not every component. Its recorded floating-point dtype is BF16. Guidance conventions are model-specific.}
+\label{tab:image-settings}
+\end{table}
+
+\subsection{Automatic Image Proxies}
+
+Pixel analysis converts outputs to RGB, composites transparency onto white, and uses LANCZOS resizing to fit a centered 512$\times$512 white canvas while preserving aspect ratio. Canvas-based fractions and per-megapixel normalization include padding. Source and output hashes, original dimensions, and per-image measurements are saved. Normalization provides a common measurement grid, but does not equalize native information content or remove aspect-ratio effects.
+
+Let $g$ denote 8-bit grayscale intensity. We measure white space ($g\ge245$), ink coverage ($g<230$), dark fill ($g\le64$), and midtones ($65\le g\le229$) as canvas fractions. Edge density is the fraction selected by Canny with thresholds 100/200 and an L2 gradient. Unexpected color is the fraction whose largest RGB channel exceeds its smallest by more than 10. White space and ink coverage are not complementary because their thresholds differ.
+
+For detail/noise proxies, we count 8-connected components of 4--24 pixels in a separate $g<200$ mask, reporting their number per megapixel and their summed area divided by the mask's ink area. The largest dark-region ratio instead uses the largest 8-connected component of $g\le64$, divided by canvas area. Empty component masks yield zero. These definitions distinguish scattered marks from large filled regions.
+
+The tenth measure compares each drawing with its source portrait using DINOv2-small features \citep{oquab-etal-2023-dinov2}. RGB originals pass through the model's image processor, not the padded pixel-analysis canvas. Pooled image features, or CLS features as a fallback, are L2-normalized before cosine comparison. The run records the resolved checkpoint revision; the evaluation script does not pin it when loading. This is a cross-domain visual similarity proxy, not face-recognition accuracy.
+
+\subsection{Paired Statistical Analysis}
+
+For each metric we compute subject-level differences $d_i=\mathrm{FLUX}_i-\mathrm{SD1.5}_i$, method means and sample standard deviations, and the mean paired difference. A percentile bootstrap resamples eight differences with replacement 10,000 times, using seed 20260911, to obtain a 95\% interval. It does not resample pixels or draw the two systems independently.
+
+A two-sided exact sign-flip test enumerates every sign assignment to nonzero differences and compares absolute mean differences with the observed value: 256 assignments when all eight differences are nonzero. This is not the sign test based only on win counts. We also retain direction-oriented paired $d_z$ and counts of subjects improving in the indicated direction. White space and similarity are oriented upward, ink coverage is descriptive, and the remaining proxies are oriented downward; these are design expectations, not universal quality rankings.
+
+Tests are exploratory, with no correction across the ten metrics. Sign-flip exactness is conditional on the sign-symmetry null assumption; it does not overcome purposive selection, post-hoc replacements, or small sample size. Bootstrap intervals and sign-flip tests use different procedures and need not yield matching decisions. We therefore report both without making a population-level superiority claim.
+
+% Declare the Results table early so a standard two-column float can appear nearby.
+\begin{table*}[t]
+\centering
+\small
+\begin{tabular}{@{}lrrrrrr@{}}
+\hline
+Metric & FLUX & SD1.5 & $\Delta$ & 95\% bootstrap CI & $p$ & Improved \\
+\hline
+DINOv2 similarity $\uparrow$ & .4634 & .3869 & +.0765 & [.0141, .1364] & .0625 & 7/8 \\
+White space $\uparrow$ & .8957 & .7797 & +.1159 & [.0550, .1904] & .0078 & 8/8 \\
+Ink coverage (descriptive) & .0947 & .1675 & $-$.0729 & [$-$.1137, $-$.0412] & .0078 & -- \\
+Dark fill $\downarrow$ & .0400 & .0599 & $-$.0199 & [$-$.0453, .0006] & .1406 & 6/8 \\
+Midtones $\downarrow$ & .0547 & .1077 & $-$.0530 & [$-$.0749, $-$.0312] & .0078 & 8/8 \\
+Edge density $\downarrow$ & .0607 & .1009 & $-$.0403 & [$-$.0525, $-$.0267] & .0078 & 8/8 \\
+Small components/Mpx $\downarrow$ & 160.2173 & 468.7309 & $-$308.5136 & [$-$765.3236, 9.5367] & .1953 & 6/8 \\
+Small-component ink $\downarrow$ & .0227 & .0392 & $-$.0165 & [$-$.0466, .0065] & .4453 & 4/8 \\
+Largest dark region $\downarrow$ & .0249 & .0222 & +.0027 & [$-$.0108, .0130] & .6953 & 2/8 \\
+Unexpected color $\downarrow$ & .0014 & .0262 & $-$.0248 & [$-$.0430, $-$.0131] & .0078 & 8/8 \\
+\hline
+\end{tabular}
+\caption{All ten proxies for eight subject pairs. $\Delta$ and intervals are FLUX minus baseline; Improved counts pairs better in the arrow direction. Values are ratios except similarity and components/Mpx and are independently rounded. Exact two-sided $p$-values are exploratory and uncorrected.}
+\label{tab:image-results}
+\end{table*}
+
+\subsection{Biography Integrity and Readability}
+
+Mechanical checks compare hashes of the saved source with source and biography metadata, check revision agreement, and apply the shared validator to word range, evidence-ID bounds, and exact supporting-sentence agreement. We additionally record whitespace word counts and explicit Marburg mentions. Mention presence does not verify the stated relationship, and these checks do not assess entailment.
+
+We record mean and maximum sentence length, sentences exceeding 25 lexical words, and approximate Flesch reading-ease and Flesch--Kincaid grade estimates \citep{flesch-1948-readability,kincaid-etal-1975-readability}. Unlike length validation, readability tokenization uses Unicode letter words, excluding numeric dates and splitting hyphenated terms. Syllables are estimated through English vowel groups with a silent-\emph{e} adjustment, not a pronunciation dictionary. Proper names, foreign titles, and specialist vocabulary can distort these estimates. They are descriptive diagnostics, not evidence that the material suits readers aged 10--14; no independent readability study was conducted.
+
+\subsection{Qualitative Source-Grounding Audit}
+
+A single Codex-assisted pass, separate from the Qwen generator, reviewed all eight saved biographies against their numbered inputs. Following a claim-level perspective rather than implementing FActScore \citep{min-etal-2023-factscore}, the review separated checkable nationalities, occupations, dates, places, and material relational qualifiers. Enumerations covered by one passage could remain a single proposition; purely evaluative adjectives were not separately scored. The resulting 143 propositions are annotation units, not independent experimental samples or a fixed benchmark denominator.
+
+Four labels distinguish the full proposition being supported by the input (\emph{supported}); a supported core with an unestablished qualifier or causal relation (\emph{partial}); no input support or a conflicting relevant detail (\emph{unsupported}); and support in one passage but material conflict in another (\emph{source-inconsistent}). Unsupported does not establish falsehood outside the input. Source-inconsistent keeps input conflicts distinct from unsupported model additions.
+
+Codex supplied the claim decomposition, selected evidence, and semantic labels; Python checked artifact integrity and evidence-ID inclusion and aggregated the stored annotations. For supported propositions, the entire reviewer-selected evidence-ID set must be included in the generated citation list to pass the inclusion check. This measures agreement with that selected set, not semantic citation sufficiency or standard citation recall. Labels and examples are descriptive, without significance tests, independent human raters, agreement estimates, external historical verification, or output edits. Appendix~\ref{app:reproducibility} documents the protocol and missing reviewer-version metadata.
+
+Overall, the layers diagnose different failure modes rather than provide one quality score. Empty drawings can score well on white space, reduced edges can erase useful detail, and padding and thresholds affect pixel metrics. Neither these proxies nor a single assistant audit establishes human preference, portrait identity preservation, coloring usability, or educational effectiveness.
+
+\section{Results}
+\label{sec:results}
+
+\subsection{Prototype Completion}
+
+The final manifest records eight subjects without outstanding errors: eight biographies, eight FLUX drawings, eight single-page PDFs, and an eight-page book containing text on every page. The baseline produced eight drawings. Completion followed retries and resumption, not a uniform first-pass batch. FLUX records peak PyTorch-allocated CUDA memory of 8.319--10.617\,GiB, not total device usage. These records demonstrate this T4 configuration's feasibility, not fresh-run reliability or a controlled runtime advantage.
+
+\subsection{Paired Image Results}
+
+Table~\ref{tab:image-results} reports every measured image proxy. Mean white space is 89.57\% for FLUX versus 77.97\% for the baseline, an increase of 11.59 percentage points. Midtone content falls from 10.77\% to 5.47\%, a reduction of 5.30 percentage points. Both move in the configured direction for all eight subjects, as do edge density and unexpected-color ratio. These findings describe sparser, less shaded outputs on the normalized measurement canvas.
+
+DINOv2 similarity is higher for FLUX in seven pairs: .4634 versus .3869, a mean difference of .0765. Its bootstrap interval excludes zero, but the exact sign-flip $p=.0625$ does not meet a .05 threshold. We retain both procedures' results; the smaller table $p$-values also remain uncorrected exploratory comparisons.
+
+The largest connected dark region does not improve on average: .0249 versus .0222, with only two subjects lower for FLUX. Its interval spans zero, so this does not establish baseline superiority either. Dark-fill and small-component measures also show uncertainty: gains are not uniform. Grimm's native FLUX resolution is only 256$\times$288 pixels, a limitation common-canvas analysis does not remedy.
+
+\subsection{Biography Checks and Source Audit}
+
+All eight biographies pass integrity checks, contain 80--105 whitespace words (mean 93.875), and mention Marburg. The mean estimated Flesch--Kincaid grade is 13.3. These mechanical checks and heuristic readability estimates establish neither age suitability nor factual reliability.
+
+The Codex-assisted audit labels 137 of 143 propositions supported, one partial, three unsupported, and two source-inconsistent. Bunsen's biography turns meeting Liebig into studying with him and merges the later burner development into the Marburg career stage. Its award-creation causal wording receives the partial label. Wegener's final sentence confuses the 1931 discovery date with death in 1930, also contradicting the biography's opening life dates. By contrast, Arendt's doctorate year and Pasternak's first-poetry-book qualifier are supported by one saved passage but conflict with another; these receive source-inconsistent labels rather than being treated as demonstrated inventions.
+
+Of the 137 supported propositions, 108 pass the reviewer-evidence-ID inclusion check. This is agreement with selected evidence sets, not semantic citation recall. Coverage limitations also arise at different stages: Hahn's selected input omits nuclear fission and his Nobel Prize, whereas Pasternak's input includes his Nobel Prize and \emph{Doctor Zhivago} but the biography omits them. These observations distinguish input information gaps from omission of available information during summarization. The evaluated outputs remain unedited, so the audit exposes pipeline limitations rather than improvements from manual correction.
+
+\section{Discussion}
+\label{sec:discussion}
+
+The results support separating operational completion from content reliability. For RQ1, sequential loading, saved intermediates, and validation-guided recovery make the evaluated T4 workflow feasible. The contribution is an inspectable integration of existing components, not a new generation algorithm. Completing a printable document is nevertheless a weaker condition than producing reliable educational material: the pipeline's acceptance checks enforce an observable output contract, not the truth or completeness of its content.
+
+The text findings show why traceability is diagnostically useful but not itself a safeguard. Valid lengths and evidence references coexist with relational and chronological errors. The audit distinguishes missing input information, omission of available facts, unsupported transformations, and conflicting source statements. These require different remedies; neither a larger generator nor additional retries has been shown here to resolve them. Because the evaluated outputs remain unedited, these failures characterize automatic generation rather than manual revision.
+
+Future pipeline work should test content selection organized around identity, the Marburg relationship, and major achievements, with each planned claim linked to evidence. Explicit handling of conflicting dates and relations could flag uncertain content instead of silently accepting it. Any semantic verifier would need separate labeled development and test cases, measuring false acceptance, false rejection, and added inference cost before serving as a generation gate. These are proposed extensions, not mechanisms evaluated in this prototype; another model judgment would not itself provide a correctness guarantee.
+
+The present evidence remains limited to eight purposively selected cases, post-observation replacements, mixed summary prompt records, and differently configured image systems. A single assistant audit is not independent human evaluation. A stronger follow-up would freeze prompts and settings on new cases, record all attempts across resumed sessions, and independently assess source grounding and drawing usability. This would test generalization and actual user-facing quality rather than only successful assembly and proxy behavior.
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+We developed and assessed an automatic pipeline for biographical coloring books using released models rather than training new components. For RQ1, the completed eight-person collection demonstrates that the evaluated quantized, sequential workflow can produce printable pages on a Colab T4 and recover through saved stages. This is case-study feasibility, not a first-pass success estimate. For RQ2, paired proxies indicate sparser, less shaded FLUX drawings than the configured baseline, while the source audit reveals semantic errors despite valid biography lengths and evidence references. Resumability and provenance enable inspectable automation but do not guarantee content reliability. Further work should evaluate source coverage, conflict handling, and semantic checks on new cases under fixed settings, preserving automatic generation rather than manually polishing evaluated outputs.
+
+\bibliography{references}
+\clearpage
+\appendix
+\input{appendix_reproducibility}
+\input{appendix_examples}
+\end{document}

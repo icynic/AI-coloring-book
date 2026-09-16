@@ -94,6 +94,19 @@ class BiographyAuditTest(unittest.TestCase):
             self.assertEqual(result["overview"]["integrity_passed"], 1)
             self.assertEqual(summary_path.read_bytes(), original_bytes)
             self.assertTrue((root / "audit" / "biography_audit.md").exists())
+            report = (root / "audit" / "report_text_evaluation.md").read_text(encoding="utf-8")
+            self.assertIn("1/1 biographies passed these mechanical checks", report)
+            self.assertIn("Marburg was explicitly mentioned in 1/1", report)
+            self.assertNotIn("incomplete preservation", report)
+            self.assertNotIn("Wegener", report)
+            self.assertNotIn("eight saved biographies", report)
+            without_annotations = run(SimpleNamespace(
+                flux_run=str(root), output_dir=str(root / "mechanical"), annotations=None,
+            ))
+            self.assertEqual(without_annotations["overview"]["reviewed_claims"], 0)
+            mechanical_report = (root / "mechanical" / "report_text_evaluation.md").read_text(encoding="utf-8")
+            self.assertIn("No claim annotations were supplied", mechanical_report)
+            self.assertNotIn("source-grounding audit", mechanical_report)
 
 
 if __name__ == "__main__":

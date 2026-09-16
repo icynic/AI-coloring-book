@@ -41,7 +41,7 @@ class ColoringPageGenerator:
         # Load LoRA
         print("Loading LoRA...")
         self.pipe.load_lora_weights(
-            "beatless/AnimeLineartLoRA"
+            "beatless/AnimeLineartLoRA", weight_name="animeoutlineV3-000008.safetensors"
         )  # <lora:animeoutlineV3-000008:0.5>
 
         # 4. Optimize

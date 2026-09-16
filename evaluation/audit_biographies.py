@@ -249,19 +249,32 @@ def run(args):
     (output_dir / "biography_audit.json").write_text(json.dumps(document, ensure_ascii=False, indent=2), encoding="utf-8")
     (output_dir / "biography_audit.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     (output_dir / "review_packet.md").write_text("\n".join(review_lines) + "\n", encoding="utf-8")
+    audit_method = (
+        " and a qualitative, agent-assisted source-grounding audit"
+        if total_claims else ""
+    )
+    marburg_result = (
+        f"Marburg was explicitly mentioned in {overview['marburg_mentioned']}/{overview['biographies']} biographies."
+    )
+    if overview['marburg_mentioned'] < overview['biographies']:
+        marburg_result += " This reveals incomplete preservation of the collection's local educational theme."
     paper_lines = ["# Draft text-evaluation section", "",
-                   "We evaluated the eight saved biographies using model-free consistency checks and a qualitative, agent-assisted source-grounding audit. "
+                   f"We evaluated {overview['biographies']} saved biographies using model-free consistency checks{audit_method}. "
                    "The consistency checks verified the accepted word range, stored source hashes, Wikipedia revision identifiers, evidence-ID bounds, and exact agreement between stored supporting sentences and the source. "
-                   f"All {overview['biographies']} biographies passed these checks, with {overview['min_word_count']}-{overview['max_word_count']} words (mean {overview['mean_word_count']:.1f}). "
-                   f"Only {overview['marburg_mentioned']} biographies explicitly mentioned Marburg, revealing incomplete preservation of the collection's local educational theme.", ""]
+                   f"{overview['integrity_passed']}/{overview['biographies']} biographies passed these mechanical checks, with {overview['min_word_count']}-{overview['max_word_count']} words (mean {overview['mean_word_count']:.1f}). "
+                   + marburg_result, ""]
     if total_claims:
         paper_lines.append(
             f"A single Codex-assisted review decomposed the outputs into {total_claims} checkable propositions and attached evidence from the saved input. "
             f"Of these, {claim_counts['supported']} were supported, {claim_counts['partial']} partially supported, {claim_counts['unsupported']} unsupported, and {claim_counts['source_inconsistent']} conflicted with another saved source passage. "
             "These labels are presented as a qualitative audit rather than independent human factuality judgments or automatic entailment scores. "
-            "For example, Wegener's summary conflated Greenland expeditions with balloon work at Lindenberg, while the Arendt and Pasternak sources contained internally conflicting dates or publication claims."
+            "Support is relative to the saved input, not independently verified historical truth; specific findings and evidence appear in biography_audit.md."
         )
         paper_lines.append("")
+    else:
+        paper_lines.extend([
+            "No claim annotations were supplied; these results do not measure factual support.", "",
+        ])
     paper_lines.append(
         "We additionally recorded sentence lengths and approximate Flesch readability measures. Syllables were estimated with a documented English heuristic, so proper names and foreign titles can distort the scores. "
         "Neither these formulas nor structural evidence checks establish suitability for ages 10-14. No independent human readability study was conducted, and no significance test was applied to the qualitative claim labels."

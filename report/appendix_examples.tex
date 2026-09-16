@@ -1,0 +1,79 @@
+% Fixed-height cells align labels and avoid stretching heterogeneous outputs.
+\newcommand{\BookExamplePair}[2]{%
+  \begin{minipage}[t]{0.48\textwidth}
+    \centering
+    \textbf{#1}\par\smallskip
+    \begin{tabular}{@{}c@{\hspace{0.02\linewidth}}c@{}}
+      \makebox[0.47\linewidth]{FLUX} &
+      \makebox[0.47\linewidth]{SD1.5 baseline} \\[2pt]
+      \begin{minipage}[c][0.29\textheight][c]{0.47\linewidth}
+        \centering
+        \includegraphics[width=\linewidth,height=0.28\textheight,keepaspectratio]
+          {figures/flux_#2.png}
+      \end{minipage} &
+      \begin{minipage}[c][0.29\textheight][c]{0.47\linewidth}
+        \centering
+        \includegraphics[width=\linewidth,height=0.28\textheight,keepaspectratio]
+          {figures/baseline_#2.png}
+      \end{minipage}
+    \end{tabular}
+  \end{minipage}%
+}
+
+\begin{figure*}[p]
+  % Keep the appendix heading with its first full-width illustration.
+  \begin{minipage}{\textwidth}
+    \section{Unedited Output Examples}
+    \label{app:examples}
+    Figures~\ref{fig:unedited-pairs-first} and~\ref{fig:unedited-pairs-second}
+    show all eight current subjects in list order, using the same saved image
+    outputs measured in Table~\ref{tab:image-results}. The PNG assets are exact
+    copies; scaling here is solely for presentation. Figure~\ref{fig:unedited-book-page}
+    shows the original book's first page, Otto Hahn, rather than a selected
+    best-looking page. These illustrations are not new experiments or human
+    preference ratings, and no generated text or drawing has been corrected.
+  \end{minipage}\par\vspace{14pt}
+  \centering
+  \small
+  \begin{tabular}{@{}c@{\hspace{0.03\textwidth}}c@{}}
+    \BookExamplePair{Otto Hahn}{Otto_Hahn} &
+    \BookExamplePair{Robert Bunsen}{Robert_Bunsen} \\[14pt]
+    \BookExamplePair{Emil von Behring}{Emil_von_Behring} &
+    \BookExamplePair{Jacob Grimm}{Jacob_Grimm}
+  \end{tabular}
+  \caption{Unedited image pairs for current subjects 1--4. Within each pair,
+    FLUX is left and the SD1.5 baseline is right. These are the same saved
+    outputs used in the evaluation, scaled only for presentation; they are
+    illustrative, not human ratings or a new selection among generated candidates.}
+  \label{fig:unedited-pairs-first}
+\end{figure*}
+
+\begin{figure*}[p]
+  \centering
+  \small
+  \begin{tabular}{@{}c@{\hspace{0.03\textwidth}}c@{}}
+    \BookExamplePair{Hannah Arendt}{Hannah_Arendt} &
+    \BookExamplePair{K. Ferdinand Braun}{K._Ferdinand_Braun} \\[14pt]
+    \BookExamplePair{Alfred Wegener}{Alfred_Wegener} &
+    \BookExamplePair{Boris Pasternak}{Boris_Pasternak}
+  \end{tabular}
+  \caption{Unedited image pairs for current subjects 5--8, continuing the
+    fixed list order. FLUX is left and the SD1.5 baseline is right within
+    each pair. Exact saved outputs are scaled only for this illustration;
+    no image-quality reranking, corrections, new trials, or human evaluation
+    is represented.}
+  \label{fig:unedited-pairs-second}
+\end{figure*}
+
+\begin{figure*}[p]
+  \centering
+  \includegraphics[width=0.93\textwidth,height=0.85\textheight,keepaspectratio]
+    {figures/generated_page.png}
+  \caption{The unchanged first page of the generated eight-page book,
+    featuring Otto Hahn, the first current subject. The complete original
+    page was mechanically rendered at 180 dpi and scaled for presentation;
+    its biography, portrait, layout, source link, and attribution remain as
+    generated. It is an illustrative document output, not a manually polished
+    educational page or evidence of human preference.}
+  \label{fig:unedited-book-page}
+\end{figure*}

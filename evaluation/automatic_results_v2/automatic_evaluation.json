@@ -1,0 +1,244 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-09-13T20:37:57.240242+00:00",
+  "runtime": {
+    "python": "3.11.3 (tags/v3.11.3:f3909b8, Apr  4 2023, 23:49:59) [MSC v.1934 64 bit (AMD64)]",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "opencv": "4.13.0",
+    "numpy": "2.4.4"
+  },
+  "configuration": {
+    "subjects": "D:\\Projects\\AIColoringBook\\evaluation\\subjects.csv",
+    "flux_run": "D:\\Projects\\AIColoringBook\\output\\final_run_v2",
+    "baseline_run": "D:\\Projects\\AIColoringBook\\evaluation\\baseline_run_v2",
+    "canvas_size": 512,
+    "bootstrap_seed": 20260911,
+    "bootstrap_repetitions": 10000,
+    "embedding": {
+      "enabled": true,
+      "model": "facebook/dinov2-small",
+      "revision": "ed25f3a31f01632728cabb09d1542f84ab7b0056",
+      "device": "cuda"
+    }
+  },
+  "metric_definitions": {
+    "source_similarity_proxy": {
+      "direction": "higher",
+      "description": "DINOv2 cosine similarity between the saved source portrait and the generated image; a cross-domain structural/semantic proxy, not face recognition."
+    },
+    "white_space_ratio": {
+      "direction": "higher",
+      "description": "Fraction of pixels with grayscale value at least 245."
+    },
+    "ink_coverage_ratio": {
+      "direction": "descriptive",
+      "description": "Fraction of pixels with grayscale value below 230."
+    },
+    "dark_fill_ratio": {
+      "direction": "lower",
+      "description": "Fraction of pixels with grayscale value at most 64."
+    },
+    "midtone_ratio": {
+      "direction": "lower",
+      "description": "Fraction of pixels with grayscale value from 65 through 229."
+    },
+    "edge_density": {
+      "direction": "lower",
+      "description": "Fraction of pixels selected by Canny edge detection (100/200 thresholds)."
+    },
+    "small_components_per_megapixel": {
+      "direction": "lower",
+      "description": "Connected ink components of 4-24 pixels per megapixel after normalization; a speckle/noise proxy."
+    },
+    "small_component_ink_ratio": {
+      "direction": "lower",
+      "description": "Fraction of thresholded ink belonging to 4-24 pixel components."
+    },
+    "largest_dark_region_ratio": {
+      "direction": "lower",
+      "description": "Largest connected dark region as a fraction of the normalized canvas."
+    },
+    "color_pixel_ratio": {
+      "direction": "lower",
+      "description": "Fraction of pixels whose maximum RGB channel difference exceeds 10."
+    }
+  },
+  "summary": [
+    {
+      "metric": "source_similarity_proxy",
+      "preferred_direction": "higher",
+      "subjects": 8,
+      "flux_final_mean": 0.463438,
+      "flux_final_sd": 0.066081,
+      "sd15_controlnet_mean": 0.386935,
+      "sd15_controlnet_sd": 0.077481,
+      "mean_difference_flux_minus_baseline": 0.076504,
+      "bootstrap_95_ci_low": 0.014132,
+      "bootstrap_95_ci_high": 0.136395,
+      "exact_sign_flip_p_uncorrected": 0.0625,
+      "paired_effect_size_dz_oriented": 0.817295,
+      "flux_better_subjects": 7,
+      "baseline_better_subjects": 1,
+      "ties": 0
+    },
+    {
+      "metric": "white_space_ratio",
+      "preferred_direction": "higher",
+      "subjects": 8,
+      "flux_final_mean": 0.895654,
+      "flux_final_sd": 0.021383,
+      "sd15_controlnet_mean": 0.779738,
+      "sd15_controlnet_sd": 0.11085,
+      "mean_difference_flux_minus_baseline": 0.115915,
+      "bootstrap_95_ci_low": 0.054956,
+      "bootstrap_95_ci_high": 0.190385,
+      "exact_sign_flip_p_uncorrected": 0.007812,
+      "paired_effect_size_dz_oriented": 1.099965,
+      "flux_better_subjects": 8,
+      "baseline_better_subjects": 0,
+      "ties": 0
+    },
+    {
+      "metric": "ink_coverage_ratio",
+      "preferred_direction": "descriptive",
+      "subjects": 8,
+      "flux_final_mean": 0.094651,
+      "flux_final_sd": 0.018595,
+      "sd15_controlnet_mean": 0.167545,
+      "sd15_controlnet_sd": 0.066363,
+      "mean_difference_flux_minus_baseline": -0.072894,
+      "bootstrap_95_ci_low": -0.113674,
+      "bootstrap_95_ci_high": -0.041191,
+      "exact_sign_flip_p_uncorrected": 0.007812,
+      "paired_effect_size_dz_oriented": null,
+      "flux_better_subjects": null,
+      "baseline_better_subjects": null,
+      "ties": 0
+    },
+    {
+      "metric": "dark_fill_ratio",
+      "preferred_direction": "lower",
+      "subjects": 8,
+      "flux_final_mean": 0.039986,
+      "flux_final_sd": 0.007938,
+      "sd15_controlnet_mean": 0.059892,
+      "sd15_controlnet_sd": 0.038967,
+      "mean_difference_flux_minus_baseline": -0.019907,
+      "bootstrap_95_ci_low": -0.045254,
+      "bootstrap_95_ci_high": 0.000576,
+      "exact_sign_flip_p_uncorrected": 0.140625,
+      "paired_effect_size_dz_oriented": 0.557484,
+      "flux_better_subjects": 6,
+      "baseline_better_subjects": 2,
+      "ties": 0
+    },
+    {
+      "metric": "midtone_ratio",
+      "preferred_direction": "lower",
+      "subjects": 8,
+      "flux_final_mean": 0.054666,
+      "flux_final_sd": 0.012481,
+      "sd15_controlnet_mean": 0.107653,
+      "sd15_controlnet_sd": 0.042822,
+      "mean_difference_flux_minus_baseline": -0.052988,
+      "bootstrap_95_ci_low": -0.074943,
+      "bootstrap_95_ci_high": -0.031196,
+      "exact_sign_flip_p_uncorrected": 0.007812,
+      "paired_effect_size_dz_oriented": 1.588206,
+      "flux_better_subjects": 8,
+      "baseline_better_subjects": 0,
+      "ties": 0
+    },
+    {
+      "metric": "edge_density",
+      "preferred_direction": "lower",
+      "subjects": 8,
+      "flux_final_mean": 0.060668,
+      "flux_final_sd": 0.012447,
+      "sd15_controlnet_mean": 0.100922,
+      "sd15_controlnet_sd": 0.020966,
+      "mean_difference_flux_minus_baseline": -0.040253,
+      "bootstrap_95_ci_low": -0.052542,
+      "bootstrap_95_ci_high": -0.026685,
+      "exact_sign_flip_p_uncorrected": 0.007812,
+      "paired_effect_size_dz_oriented": 2.026881,
+      "flux_better_subjects": 8,
+      "baseline_better_subjects": 0,
+      "ties": 0
+    },
+    {
+      "metric": "small_components_per_megapixel",
+      "preferred_direction": "lower",
+      "subjects": 8,
+      "flux_final_mean": 160.217285,
+      "flux_final_sd": 125.147986,
+      "sd15_controlnet_mean": 468.730927,
+      "sd15_controlnet_sd": 687.747971,
+      "mean_difference_flux_minus_baseline": -308.513641,
+      "bootstrap_95_ci_low": -765.323639,
+      "bootstrap_95_ci_high": 9.536743,
+      "exact_sign_flip_p_uncorrected": 0.195312,
+      "paired_effect_size_dz_oriented": 0.481603,
+      "flux_better_subjects": 6,
+      "baseline_better_subjects": 2,
+      "ties": 0
+    },
+    {
+      "metric": "small_component_ink_ratio",
+      "preferred_direction": "lower",
+      "subjects": 8,
+      "flux_final_mean": 0.022674,
+      "flux_final_sd": 0.015863,
+      "sd15_controlnet_mean": 0.03916,
+      "sd15_controlnet_sd": 0.051597,
+      "mean_difference_flux_minus_baseline": -0.016487,
+      "bootstrap_95_ci_low": -0.046582,
+      "bootstrap_95_ci_high": 0.006471,
+      "exact_sign_flip_p_uncorrected": 0.445312,
+      "paired_effect_size_dz_oriented": 0.385674,
+      "flux_better_subjects": 4,
+      "baseline_better_subjects": 4,
+      "ties": 0
+    },
+    {
+      "metric": "largest_dark_region_ratio",
+      "preferred_direction": "lower",
+      "subjects": 8,
+      "flux_final_mean": 0.024909,
+      "flux_final_sd": 0.007397,
+      "sd15_controlnet_mean": 0.022214,
+      "sd15_controlnet_sd": 0.022886,
+      "mean_difference_flux_minus_baseline": 0.002695,
+      "bootstrap_95_ci_low": -0.010757,
+      "bootstrap_95_ci_high": 0.01297,
+      "exact_sign_flip_p_uncorrected": 0.695312,
+      "paired_effect_size_dz_oriented": -0.145917,
+      "flux_better_subjects": 2,
+      "baseline_better_subjects": 6,
+      "ties": 0
+    },
+    {
+      "metric": "color_pixel_ratio",
+      "preferred_direction": "lower",
+      "subjects": 8,
+      "flux_final_mean": 0.001425,
+      "flux_final_sd": 0.001243,
+      "sd15_controlnet_mean": 0.026192,
+      "sd15_controlnet_sd": 0.024717,
+      "mean_difference_flux_minus_baseline": -0.024767,
+      "bootstrap_95_ci_low": -0.043009,
+      "bootstrap_95_ci_high": -0.013119,
+      "exact_sign_flip_p_uncorrected": 0.007812,
+      "paired_effect_size_dz_oriented": 0.984334,
+      "flux_better_subjects": 8,
+      "baseline_better_subjects": 0,
+      "ties": 0
+    }
+  ],
+  "caveats": [
+    "All automatic image-quality measurements are proxies.",
+    "DINOv2 similarity is not face-recognition accuracy.",
+    "Lower edge or ink density is not unconditionally better; an empty image can score well.",
+    "Exact sign-flip p-values are exploratory and uncorrected for multiple comparisons."
+  ]
+}

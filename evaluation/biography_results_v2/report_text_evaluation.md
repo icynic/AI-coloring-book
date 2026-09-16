@@ -1,0 +1,7 @@
+# Draft text-evaluation section
+
+We evaluated 8 saved biographies using model-free consistency checks and a qualitative, agent-assisted source-grounding audit. The consistency checks verified the accepted word range, stored source hashes, Wikipedia revision identifiers, evidence-ID bounds, and exact agreement between stored supporting sentences and the source. 8/8 biographies passed these mechanical checks, with 80-105 words (mean 93.9). Marburg was explicitly mentioned in 8/8 biographies.
+
+A single Codex-assisted review decomposed the outputs into 143 checkable propositions and attached evidence from the saved input. Of these, 137 were supported, 1 partially supported, 3 unsupported, and 2 conflicted with another saved source passage. These labels are presented as a qualitative audit rather than independent human factuality judgments or automatic entailment scores. Support is relative to the saved input, not independently verified historical truth; specific findings and evidence appear in biography_audit.md.
+
+We additionally recorded sentence lengths and approximate Flesch readability measures. Syllables were estimated with a documented English heuristic, so proper names and foreign titles can distort the scores. Neither these formulas nor structural evidence checks establish suitability for ages 10-14. No independent human readability study was conducted, and no significance test was applied to the qualitative claim labels.
