@@ -37,7 +37,7 @@ The final resumed Colab manifest records Python 3.13.15, Linux 6.6.122 with glib
 For a new installation, the current \nolinkurl{requirements-colab.txt} specifies Diffusers commit \nolinkurl{f3d42be118f9af7ed9697b686fba09a8bdcd71d1}, Transformers 5.5.0, Accelerate 1.13.0, Safetensors 0.8.0rc1, Requests 2.32.4, ReportLab 4.5.0, Protobuf 5.29.5, Pillow $\geq$10 and $<$13, SentencePiece $\geq$0.2.0, and BitsAndBytes $\geq$0.48.0. It preserves Colab's supplied PyTorch. The current local \nolinkurl{requirements.txt} adds ControlNet-Aux 0.0.10, PEFT 0.18.1, OpenCV-Python 4.13.0.92, and NumPy $\geq$2 and $<$3. These are current installation specifications, not recovered logs of every package installed during historical generation. The evaluated manifests do not store a project code commit; the present repository HEAD must not be treated as that historical identifier.
 
 \paragraph{Documented source snapshot.}
-Table~\ref{tab:code-snapshot} identifies the current source files documented on September 16, 2026. The repository HEAD is \nolinkurl{8e56c36f9686b8022e2238c37af418228992db36}, with local modifications; HEAD alone therefore does not identify the submitted source. The SHA-256 hashes identify the actual files and can be checked against the accompanying software bundle. They are not a recovered code version for the earlier Colab run.
+Table~\ref{tab:code-snapshot} identifies the current source files documented on September 17, 2026. The repository HEAD is \nolinkurl{136951ae170c89f1c915bc2e24144dc98c76cefb}, with local modifications; HEAD alone therefore does not identify the submitted source. The SHA-256 hashes identify the actual files and can be checked against the accompanying software bundle. They are not a recovered code version for the earlier Colab run.
 
 \begin{table*}[t]
 \centering
@@ -46,7 +46,7 @@ Table~\ref{tab:code-snapshot} identifies the current source files documented on 
 \hline
 Source file & SHA-256 of documented file \\
 \hline
-\nolinkurl{main.py} & \nolinkurl{504987693b8021ce4f0429725a173a8f2a49cd4aca376018041837e6f99e17f8} \\
+\nolinkurl{main.py} & \nolinkurl{3c0152c5af2d286177dcc9aea2950ee7ce6cd01272306db6620895a9869544a0} \\
 \nolinkurl{Fetcher.py} & \nolinkurl{6a5013a30866e770770a5d319bffa0eb13a40e39c14a303c8d9a1b468e6482be} \\
 \nolinkurl{source_text.py} & \nolinkurl{b176a50ed6a5ebbca00812882d107cfbb79112653d74c1794699572a84d641e5} \\
 \nolinkurl{summary_validation.py} & \nolinkurl{1c07a0384ee91d0da46f2e3ebcf0fe620321e808a849e7f2bc31bbcd7d6beb31} \\
@@ -127,7 +127,7 @@ python -u main.py \textbackslash{}\\
 \quad -{}-summary-target-words 95 \textbackslash{}\\
 \quad -{}-no-fuzzy-search
 \end{quote}
-With no names, the CLI reads \nolinkurl{evaluation/subjects.csv}. This mirrors the evaluated hard range; the notebook uses 60--110, both with target 95. Use a new empty directory; identical settings resume there. A fresh run uses live article revisions and the current prompt, so it cannot recreate cached biographies or guarantee identical drawings.
+With no names, the CLI reads \nolinkurl{evaluation/subjects.csv}. This mirrors the evaluated hard range; the notebook uses 60--110, both with target 95. Use a new empty directory; identical settings resume there. Controlled source, summary, or image failures write an incomplete manifest and stop before the next expensive stage; rerunning reuses valid cached outputs. A fresh run uses live article revisions and the current prompt, so it cannot recreate cached biographies or guarantee identical drawings.
 
 After downloading the full new run as \nolinkurl{output/reproduction}, install the local requirements and generate its paired baseline with the following command. Local commands use PowerShell backtick line continuation; Bash uses a backslash instead:
 \begin{quote}\small\raggedright

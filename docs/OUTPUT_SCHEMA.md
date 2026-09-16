@@ -36,17 +36,18 @@ resume offline. Do not rewrite historical metadata to make it look like a new ru
 
 ## Manifest and acceptance checklist
 
-The version-2 `manifest.json` is written before downloads/model loading, then
-replaced at the end of a normally completed pipeline invocation. An exception
-before that point can leave the initial manifest with no items; it is not a
-completion record.
+The version-2 `manifest.json` is written before downloads/model loading. It is
+replaced either at a controlled stage stop or at the end of a normally completed
+invocation. A controlled stop contains runtime data, populated items and a null
+`book_path`; an interruption or unexpected exception before that checkpoint can
+leave the initial manifest with no items, which is not a completion record.
 
 | Field | Meaning |
 | --- | --- |
 | `schema_version` | Current manifest schema: `2`. |
 | `configuration` | Ordered names, model IDs/revisions, quantization, image settings, seed, target age, accepted word range, soft word target, and preset/search settings. |
-| `runtime` | Python, platform, PyTorch, CUDA availability and device, when the invocation reaches its final manifest write. |
-| `started_at`, `completed_at` | UTC timestamps for that invocation, not all earlier attempts in a resumed experiment. |
+| `runtime` | Python, platform, PyTorch, CUDA availability and device, when the invocation reaches a controlled checkpoint or final manifest write. |
+| `started_at`, `completed_at` | UTC timestamps for that invocation, not all earlier attempts in a resumed experiment. `completed_at` can mark a controlled failure checkpoint and does not imply success. |
 | `book_path` | Current combined PDF path, or `null` when no complete book was built. |
 | `items` | One record per requested subject, with query, slug, resolved title, artifact paths, source provenance, and `errors`. |
 
@@ -93,6 +94,9 @@ with the submitted software/data; missing fields are not inferred to be complete
 Source-cache reuse requires a valid saved text hash, current source policy, an
 existing stored portrait path, and a recorded image hash. It does not recompute
 the image's byte hash during core cache reuse or assess portrait suitability.
+In a normal full run, any missing selected text or local portrait stops the
+invocation after the fetch batch and before Qwen is loaded. The checkpoint
+manifest identifies each missing source item; the same command can retry it.
 
 ## Biographies
 
@@ -140,8 +144,10 @@ evidence IDs are not reselected after shortening.
 
 Exhausted attempts go to `summary_failures/<slug>.json` with their source/model
 context. These are diagnostic logs, never accepted caches or an offline
-recovery path. Normal resumption retries missing or invalid summaries; do not
-copy raw failure responses into the accepted summary directory.
+recovery path. The first exhausted biography stops further uncached summaries,
+releases Qwen, writes a checkpoint manifest, and prevents FLUX from loading.
+Normal resumption retries missing or invalid summaries; do not copy raw failure
+responses into the accepted summary directory.
 
 ## Images and PDFs
 
@@ -164,10 +170,12 @@ drawings are reused by file existence, not image-quality or identity validation.
 `coloring_book.pdf` contains the complete book. PDFs are rebuilt from validated
 biographies and available images. Incomplete runs have a null manifest
 `book_path`; any older PDF on disk is not advertised as the current result.
-The missing-biography/image check prevents rebuilding the book, preserving old
-PDFs. A later rendering error can leave some newly rebuilt individual pages
-without a new complete book. Always use the final manifest and acceptance
-checklist rather than assuming every PDF has the same invocation timestamp.
+The summary gate prevents FLUX from loading when a biography is missing, and
+the image gate prevents PDF assembly when a drawing is missing. PDF validation
+retains a final defensive completeness check, preserving old PDFs. A later
+rendering error can leave some newly rebuilt individual pages without a new
+complete book. Always use the final manifest and acceptance checklist rather
+than assuming every PDF has the same invocation timestamp.
 
 ## Analysis artifacts are separate
 

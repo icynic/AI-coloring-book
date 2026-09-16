@@ -4,7 +4,7 @@ from pathlib import Path
 import tempfile
 from types import SimpleNamespace
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from PIL import Image
 import torch
@@ -181,6 +181,86 @@ class PipelineHelpersTest(unittest.TestCase):
             self.assertEqual((run_dir / "manifest.json").read_bytes(), before)
             for key in ("verify_summaries", "summary_review_version", "max_review_revisions"):
                 self.assertNotIn(key, manifest["configuration"])
+
+    def test_missing_source_image_stops_before_qwen(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            run_dir = Path(temporary_directory)
+            source_text = " ".join(["biographical"] * 100)
+            source = {
+                "title": "Test Person",
+                "summary": source_text,
+                "image_path": None,
+                "revision_id": 123,
+                "source_text_sha256": text_sha256(source_text),
+                "source_policy_version": 2,
+            }
+            args = parse_args([
+                "--names", "Test Person", "Other Person",
+                "--output-dir", str(run_dir),
+            ])
+
+            with patch("main.get_person_info", return_value=source), \
+                    patch("Summarizer.Summarizer") as qwen, \
+                    patch("main.image_generation_stage") as flux_stage, \
+                    patch("main.pdf_stage") as pdf_stage:
+                with self.assertRaisesRegex(
+                    RuntimeError, r"\[fetch\].*stopping before loading Qwen"
+                ):
+                    run_pipeline(args)
+
+            qwen.assert_not_called()
+            flux_stage.assert_not_called()
+            pdf_stage.assert_not_called()
+            manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
+            self.assertIsNone(manifest["book_path"])
+            self.assertIn("No source image was retrieved.", manifest["items"][0]["errors"])
+
+    def test_failed_summary_stops_before_flux(self):
+        from Summarizer import SummaryGenerationError
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            run_dir = root / "run"
+            source_image = root / "input.png"
+            Image.new("RGB", (64, 64), "white").save(source_image)
+            source_text = " ".join(["biographical"] * 100)
+            source = {
+                "title": "Test Person",
+                "summary": source_text,
+                "image_path": str(source_image),
+                "image_sha256": "image-hash",
+                "revision_id": 123,
+                "source_text_sha256": text_sha256(source_text),
+                "source_policy_version": 2,
+            }
+            args = parse_args([
+                "--names", "Test Person", "Other Person",
+                "--output-dir", str(run_dir),
+            ])
+            qwen = Mock()
+            qwen.summarize_with_evidence.side_effect = SummaryGenerationError(
+                "No valid biography after 3 attempts", []
+            )
+
+            other_source = {**source, "title": "Other Person", "revision_id": 456}
+            with patch("main.get_person_info", side_effect=[source, other_source]), \
+                    patch("Summarizer.Summarizer", return_value=qwen), \
+                    patch("main.image_generation_stage") as flux_stage, \
+                    patch("main.pdf_stage") as pdf_stage:
+                with self.assertRaisesRegex(
+                    RuntimeError, r"\[summarize\].*stopping before loading FLUX"
+                ):
+                    run_pipeline(args)
+
+            qwen.cleanup.assert_called_once_with()
+            qwen.summarize_with_evidence.assert_called_once()
+            flux_stage.assert_not_called()
+            pdf_stage.assert_not_called()
+            self.assertTrue((run_dir / "summary_failures/Test_Person.json").is_file())
+            manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
+            self.assertIsNone(manifest["book_path"])
+            self.assertIn("Summarization failed", manifest["items"][0]["errors"][0])
+            self.assertIn("not attempted", manifest["items"][1]["errors"][0])
 
 
 # The actual 115-word model output reported in the failed run; no new generation.

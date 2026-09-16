@@ -131,6 +131,13 @@ Do not add `--t4-safe-mode` to this command: it would restore 640 px and disable
 
 Run the pipeline cell. It prints the command and starts a fresh unbuffered Python process, merging stderr into stdout and printing each line as it arrives. Stage messages include `[fetch]`, `[summarize]`, `[image]`, and `[pdf]`. Model downloads/loading can dominate the first run, and there is no fixed completion-time guarantee. There are no separate repair or model self-review stages.
 
+The normal full pipeline has completeness gates between expensive stages. If
+any required Wikipedia text or reference portrait is missing after fetching,
+the run checkpoints its errors and stops before loading Qwen. If Qwen exhausts
+the allowed attempts for a biography, the failure is saved, Qwen is released,
+and the run stops before loading FLUX. Missing generated drawings stop the run
+before PDF assembly. These controlled stops are resumable with the same command.
+
 Then run the last inspection cell. A successful full run requires:
 
 - The pipeline process exits with code 0.
@@ -150,7 +157,7 @@ portable caches for a new machine.
 
 The CLI rejects a nonempty directory without a current manifest, an old manifest schema, or a different recorded configuration before changing its outputs. These checks do not pin all source-file contents. Do not update code midway if you need an unchanged experiment. Use a new directory for different people, seeds, models, quantization, resolution, or word policy. `--force`/`FORCE_REGENERATE=True` regenerates cached stages and is not the normal resume mechanism.
 
-If the run fails, use the actual stage error above the final notebook exception. A null `book_path` means no complete new book was produced; existing PDFs may remain unchanged and must not be presented as a successful rerun. Inspect `manifest.json` and any `summary_failures/*.json`. If the process was killed before its final manifest write, that manifest may contain only the initial configuration, with no runtime or populated items; read the streamed log first.
+If the run fails, use the actual stage error above the final notebook exception. A null `book_path` means no complete new book was produced; existing PDFs may remain unchanged and must not be presented as a successful rerun. Inspect `manifest.json` and any `summary_failures/*.json`. A controlled stage stop writes `completed_at`, `runtime`, and populated `items` with per-person errors. If the process is killed or raises unexpectedly before that checkpoint, the manifest may contain only the initial configuration with empty items; read the streamed log first.
 
 ## 5. Download the complete result
 
@@ -176,7 +183,7 @@ The ZIP includes the directory contents, not just the PDF. Download promptly; ru
 | Out of GPU memory | Stop other GPU jobs or restart the same runtime, restore the configuration/override, and resume. If the T4 preset still fails, use a new directory for a custom lower-resolution, 4-bit FLUX, or offloaded experiment. Do not silently mix settings in one evaluation. |
 | Pillow import error, including `_Ink` or missing `ImageText` | Rerun the requirements install, restart the session, return to the project root, and run the current core-module check. That check uses `Image` and `ImageOps`, not `ImageText`; do not add an `ImageText` check. |
 | requests/protobuf conflicts | Install the project Colab requirements and restart before checking again. Unrelated preinstalled Colab packages can also emit resolver warnings; use the actual compatibility-check result and failure traceback rather than a broad upgrade. |
-| Wikimedia HTTP 429 or slow `[fetch]` | The downloader retries with backoff and respects `Retry-After`, so a request can remain quiet while waiting. Avoid parallel download jobs. Let retries finish or stop and resume later with the same configuration; complete cached sources will be reused. No wait time guarantees that the shared Colab IP is unblocked. |
+| Wikimedia HTTP 429 or slow `[fetch]` | The downloader retries with backoff and respects `Retry-After`, so a request can remain quiet while waiting. After retries are exhausted, the fetch gate records the missing source portrait and stops before Qwen. Avoid parallel jobs, wait, then resume with the same configuration; complete cached sources are reused. No wait time guarantees that the shared Colab IP is unblocked. |
 | No apparent output | Confirm the current pipeline cell contains `subprocess.Popen` and its line-printing loop, and that `Running:` appears. It only prints when the child emits a line; loading and retry waits can be quiet. The cell's final exception is not the root cause: retain the preceding stdout/stderr. |
-| Notebook `RuntimeError` / process exit code 1 | Read the preceding stage failure, then the manifest if it reached the final write. An invalid biography prevents rebuilding the complete book. Rerun normally to retry missing/invalid outputs; do not use old PDFs as evidence of success. |
+| Notebook `RuntimeError` / process exit code 1 | Read the preceding `[fetch]`, `[summarize]`, or `[image] Stage incomplete` message and the checkpoint manifest. A summary failure stops before FLUX; a fetch failure stops before Qwen. Rerun normally to retry missing/invalid outputs; do not use old PDFs as evidence of success. |
 | “Existing run uses older code or different settings” | Restore the original configuration for a genuine resume, or choose a new empty directory for a new experiment. Do not delete the manifest to bypass the safeguard. |

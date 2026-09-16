@@ -214,6 +214,10 @@ def summarization_stage(records, paths, args):
         elif invalid_reason:
             record["errors"].append(f"No valid summary: {invalid_reason}")
 
+    # A known impossible/disabled biography should stop the stage before Qwen is loaded.
+    if any(record.get("summary") is None and record["errors"] for record in records):
+        return
+
     summarizer = None
     if pending:
         from Summarizer import Summarizer
@@ -224,7 +228,7 @@ def summarization_stage(records, paths, args):
             revision=args.qwen_revision,
         )
         try:
-            for record in pending:
+            for pending_index, record in enumerate(pending):
                 print(f"[summarize] {record['source']['title']}", flush=True)
                 summary_path = paths["summaries"] / f"{record['slug']}.json"
                 try:
@@ -264,6 +268,11 @@ def summarization_stage(records, paths, args):
                                     "requested_word_range": [args.summary_min_words, args.summary_max_words],
                                     "target_words": args.summary_target_words},
                     })
+                    for remaining in pending[pending_index + 1:]:
+                        remaining["errors"].append(
+                            "Summarization not attempted because an earlier biography failed."
+                        )
+                    break
         finally:
             summarizer.cleanup()
             del summarizer
@@ -417,6 +426,41 @@ def manifest_record(record):
     }
 
 
+def build_manifest(started_at, configuration, records, book_path=None):
+    """Build a resumable checkpoint for both complete and failed runs."""
+    return {
+        "schema_version": 2,
+        "started_at": started_at,
+        "completed_at": utc_now(),
+        "runtime": runtime_info(),
+        "configuration": configuration,
+        "book_path": str(book_path) if book_path else None,
+        "items": [manifest_record(record) for record in records],
+    }
+
+
+def stop_before_stage(stage, next_stage, failed_records, manifest_path,
+                      started_at, configuration, records):
+    """Checkpoint an incomplete stage and stop before expensive downstream work."""
+    if not failed_records:
+        return
+
+    manifest = build_manifest(started_at, configuration, records)
+    write_json(manifest_path, manifest)
+    details = []
+    for record in failed_records:
+        reasons = record.get("errors") or [f"Required {stage} output is missing."]
+        reason_text = " | ".join(str(reason).rstrip(".") for reason in reasons)
+        details.append(f"{record['query']}: {reason_text}")
+    message = (
+        f"[{stage}] Stage incomplete; stopping before {next_stage}. "
+        f"{'; '.join(details)} Rerun the same command to resume."
+    )
+    print(message, flush=True)
+    print(f"Manifest: {manifest_path}", flush=True)
+    raise RuntimeError(message)
+
+
 def run_configuration(args, names):
     keys = ("qwen_model", "qwen_revision", "qwen_quantization", "flux_model",
             "flux_revision", "flux_quantization", "flux_steps", "guidance_scale",
@@ -453,19 +497,53 @@ def run_pipeline(args):
         force=args.force,
         fuzzy_search=not args.no_fuzzy_search,
     )
+    source_text_required = not args.skip_summarization or not args.skip_pdf
+    source_image_required = not args.skip_image_generation
+    incomplete_sources = [
+        record
+        for record in records
+        if (
+            source_text_required
+            and not record["source"].get("summary")
+        ) or (
+            source_image_required
+            and (
+                not record["source"].get("image_path")
+                or not Path(record["source"]["image_path"]).is_file()
+            )
+        )
+    ]
+    stop_before_stage(
+        "fetch", "loading Qwen", incomplete_sources, manifest_path,
+        started_at, configuration, records,
+    )
+
     summarization_stage(records, paths, args)
+    summaries_required = not args.skip_summarization or not args.skip_pdf
+    incomplete_summaries = [
+        record for record in records
+        if summaries_required and record.get("summary") is None
+    ]
+    stop_before_stage(
+        "summarize", "loading FLUX", incomplete_summaries, manifest_path,
+        started_at, configuration, records,
+    )
+
     image_generation_stage(records, paths, args)
+    generated_images_required = not args.skip_image_generation or not args.skip_pdf
+    incomplete_images = [
+        record for record in records
+        if generated_images_required
+        and not Path(record.get("generated_image_path") or "").is_file()
+    ]
+    stop_before_stage(
+        "image", "building the PDF", incomplete_images, manifest_path,
+        started_at, configuration, records,
+    )
+
     book_path = pdf_stage(records, paths, args)
 
-    manifest = {
-        "schema_version": 2,
-        "started_at": started_at,
-        "completed_at": utc_now(),
-        "runtime": runtime_info(),
-        "configuration": configuration,
-        "book_path": str(book_path) if book_path else None,
-        "items": [manifest_record(record) for record in records],
-    }
+    manifest = build_manifest(started_at, configuration, records, book_path)
     write_json(manifest_path, manifest)
     print(f"Manifest: {manifest_path}")
     if book_path:

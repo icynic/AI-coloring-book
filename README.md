@@ -97,6 +97,13 @@ compatible directory; it is not the normal retry command. Downloaded source
 metadata retains Colab absolute paths, so moving a result folder to Windows
 does not make `main.py` an offline replay tool.
 
+Normal full runs stop at stage boundaries instead of discovering missing work
+only during PDF assembly. Missing Wikipedia text or a local reference portrait
+writes a checkpoint manifest and stops before Qwen is loaded. An exhausted
+biography retry writes `summary_failures/<slug>.json`, releases Qwen, and stops
+before FLUX is loaded. A missing generated drawing stops before PDF assembly.
+Rerun the same command to reuse valid stage outputs and retry the missing item.
+
 ## Completion and outputs
 
 A successful default run exits with code 0, records eight items without errors,
@@ -117,8 +124,9 @@ old PDF on disk as a new success.
   summary_failures/        diagnostic logs when generation fails
 ```
 
-Incomplete runs retain errors and do not advertise an old PDF as the current
-book. Inspect the streamed log and manifest, then resume normally. Model
+Incomplete runs retain per-item errors in a checkpoint manifest with a null
+`book_path` and do not advertise an old PDF as the current book. Inspect the
+streamed log and manifest, then resume normally. Model
 downloads/loading and network retries can be expensive; the saved resumed
 manifest duration is not a fresh end-to-end generation time. Download the
 **whole run directory**, not just the PDF, as explained in the runbook.
