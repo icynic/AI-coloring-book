@@ -50,9 +50,13 @@ class PipelineHelpersTest(unittest.TestCase):
             for retired in ("REPAIR_SUMMARIES_ONLY", "REFRESH_SOURCE_TEXT", "--repair-summaries", "refine_biographies"):
                 self.assertNotIn(retired, source)
         configuration = "".join(notebook["cells"][6]["source"])
+        pipeline = "".join(notebook["cells"][7]["source"])
         self.assertIn("evaluation/subjects.csv", configuration)
-        self.assertIn("final_run_v2", configuration)
+        self.assertIn("final_run_v4", configuration)
+        self.assertIn("SUMMARY_TARGET_WORDS = 95", configuration)
+        self.assertIn("'--summary-target-words', str(SUMMARY_TARGET_WORDS)", pipeline)
         self.assertEqual(parse_args([]).output_dir, "output/final_run_v2")
+        self.assertEqual(parse_args([]).summary_target_words, 95)
 
     def test_unknown_or_old_output_is_not_overwritten(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -154,6 +158,7 @@ class PipelineHelpersTest(unittest.TestCase):
                     "--skip-image-generation",
                     "--summary-min-words", "8",
                     "--summary-max-words", "20",
+                    "--summary-target-words", "12",
                 ]
             )
             (run_dir / "manifest.json").write_text(json.dumps({
@@ -251,7 +256,7 @@ class LengthValidationTest(unittest.TestCase):
         result = model.summarize_with_evidence(DRAFT)
         self.assertEqual(model.pipe.call_count, 3)
         self.assertEqual(result['word_count'], 98)
-        self.assertEqual(result['prompt_version'], 2)
+        self.assertEqual(result['prompt_version'], 3)
         self.assertEqual(result['prompt_constraints'], {
             'target_words': 95, 'sentence_count': 5, 'words_per_sentence': [18, 20],
         })
@@ -277,6 +282,56 @@ class LengthValidationTest(unittest.TestCase):
             model.summarize_with_evidence(DRAFT)
         self.assertEqual(model.pipe.call_count, 3)
         self.assertEqual(len(failure.exception.attempts), 3)
+
+    def test_soft_target_is_independent_from_the_accepted_minimum(self):
+        accepted = fit_summary_length(RECORD, DRAFT, 50, 110)['summary']
+        model = self.make_summarizer([
+            json.dumps({'summary': accepted, 'supporting_source_sentence_ids': [1]}),
+        ])
+        result = model.summarize_with_evidence(
+            DRAFT, min_words=50, max_words=110, target_words=95,
+        )
+        self.assertEqual(result['prompt_constraints'], {
+            'target_words': 95, 'sentence_count': 5, 'words_per_sentence': [18, 20],
+        })
+        prompt = model.pipe.call_args.kwargs['text'][1]['content'][0]['text']
+        self.assertIn('50-110 whitespace-separated words', prompt)
+        self.assertIn('Aim for 95 words, using 5 short sentences', prompt)
+
+    def test_repeated_short_draft_gets_fresh_rewrite_with_full_source(self):
+        short = 'Jacob Grimm ' + ' '.join(['detail'] * 44) + ' End.'
+        accepted = fit_summary_length(RECORD, DRAFT, 50, 110)['summary']
+        short_json = json.dumps({
+            'summary': short,
+            'supporting_source_sentence_ids': [1],
+        })
+        model = self.make_summarizer([
+            short_json,
+            short_json,
+            json.dumps({'summary': accepted, 'supporting_source_sentence_ids': [1]}),
+        ])
+
+        result = model.summarize_with_evidence(
+            DRAFT, min_words=50, max_words=110, target_words=95,
+        )
+
+        self.assertEqual(result['word_count'], 98)
+        calls = model.pipe.call_args_list
+        self.assertEqual([message['role'] for message in calls[1].kwargs['text']],
+                         ['system', 'user', 'assistant', 'user'])
+        self.assertEqual([message['role'] for message in calls[2].kwargs['text']],
+                         ['system', 'user', 'user'])
+        for call in calls:
+            original_user_prompt = call.kwargs['text'][1]['content'][0]['text']
+            self.assertIn('SOURCE:', original_user_prompt)
+            self.assertIn('Baroness Gertrud von Le Fort', original_user_prompt)
+            self.assertIn('END SOURCE', original_user_prompt)
+        fresh_feedback = calls[2].kwargs['text'][-1]['content'][0]['text']
+        self.assertIn('FRESH REWRITE REQUIRED', fresh_feedback)
+        self.assertIn('from scratch', fresh_feedback)
+        self.assertIn('aim for 95 words', fresh_feedback)
+        self.assertFalse(result['generation_attempts'][0]['repeated_invalid_output'])
+        self.assertTrue(result['generation_attempts'][1]['repeated_invalid_output'])
 
     def test_actual_115_word_answer_is_trimmed_only_at_sentence_boundary(self):
         result = fit_summary_length(RECORD, DRAFT, 60, 110)

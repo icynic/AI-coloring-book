@@ -64,10 +64,16 @@ T4_SAFE_MODE = True
 FORCE_REGENERATE = False
 FUZZY_SEARCH = False
 SEED = 42
-SUMMARY_MIN_WORDS, SUMMARY_MAX_WORDS = 80, 110
+SUMMARY_MIN_WORDS, SUMMARY_MAX_WORDS = 60, 110
+SUMMARY_TARGET_WORDS = 95
 ```
 
-Authorize Drive mounting when prompted. **The notebook currently assigns a directory named `final_run_v2`; that name alone does not make it fresh. Preserve any archived directory with that name.** Immediately after the configuration cell and before the pipeline cell, add and run a small override cell for a new experiment:
+The accepted range and soft target are separate: changing the minimum does not
+change the prompt's 95-word, five-sentence writing target. Authorize Drive
+mounting when prompted. **The notebook currently assigns a directory named
+`final_run_v4`; preserve `final_run_v2` as the evaluated archive and any earlier
+failed experiment directories.** Immediately after the configuration cell and
+before the pipeline cell, add and run a small override cell for a new experiment:
 
 ```python
 OUTPUT_DIR = '/content/drive/MyDrive/AIColoringBook/reproduction_t4'
@@ -112,7 +118,8 @@ To customize, set `T4_SAFE_MODE=False`. The notebook exposes `QWEN_QUANTIZATION`
 ```bash
 !python -u main.py --names "Otto Hahn" "Robert Bunsen" \
   --output-dir /content/drive/MyDrive/AIColoringBook/custom_t4 \
-  --seed 42 --summary-min-words 80 --summary-max-words 110 \
+  --seed 42 --summary-min-words 60 --summary-max-words 110 \
+  --summary-target-words 95 \
   --no-fuzzy-search --qwen-quantization 4bit --flux-quantization 8bit \
   --max-side 512 --max-sequence-length 256 --flux-steps 4 \
   --guidance-scale 1.0 --flux-offload --vae-tiling
@@ -133,7 +140,13 @@ Then run the last inspection cell. A successful full run requires:
 
 Inspect the PDF rather than assuming that successful generation establishes factual accuracy or visual quality. Validation checks structure, length, and source/evidence bookkeeping; it does not prove that every factual claim follows from its cited sentences.
 
-To resume, use the **same code copy, directory, ordered names, and settings**, keep `FORCE_REGENERATE=False`, and rerun the pipeline cell. Complete source caches, validated summaries, and existing generated images can be reused; PDFs are rebuilt from the current validated text and images. Downloaded archives contain Colab absolute paths, so inspecting them locally is not the same as making them portable caches for a new machine.
+To resume, use the **same code copy, directory, ordered names, and settings**,
+including the accepted word range and soft target, keep
+`FORCE_REGENERATE=False`, and rerun the pipeline cell. Complete source caches,
+validated summaries, and existing generated images can be reused; PDFs are
+rebuilt from the current validated text and images. Downloaded archives contain
+Colab absolute paths, so inspecting them locally is not the same as making them
+portable caches for a new machine.
 
 The CLI rejects a nonempty directory without a current manifest, an old manifest schema, or a different recorded configuration before changing its outputs. These checks do not pin all source-file contents. Do not update code midway if you need an unchanged experiment. Use a new directory for different people, seeds, models, quantization, resolution, or word policy. `--force`/`FORCE_REGENERATE=True` regenerates cached stages and is not the normal resume mechanism.
 

@@ -44,7 +44,7 @@ completion record.
 | Field | Meaning |
 | --- | --- |
 | `schema_version` | Current manifest schema: `2`. |
-| `configuration` | Ordered names, model IDs/revisions, quantization, image settings, seed, target age, word range, and preset/search settings. |
+| `configuration` | Ordered names, model IDs/revisions, quantization, image settings, seed, target age, accepted word range, soft word target, and preset/search settings. |
 | `runtime` | Python, platform, PyTorch, CUDA availability and device, when the invocation reaches its final manifest write. |
 | `started_at`, `completed_at` | UTC timestamps for that invocation, not all earlier attempts in a resumed experiment. |
 | `book_path` | Current combined PDF path, or `null` when no complete book was built. |
@@ -66,7 +66,7 @@ identity, age suitability, or completeness of attribution. A file left from an
 older invocation is not sufficient evidence of success.
 
 Resumption requires an identical schema and run configuration, including the
-ordered names. Old schemas, changed settings, or unknown nonempty directories
+ordered names and summary soft target. Old schemas, changed settings, or unknown nonempty directories
 are rejected before the new manifest is written. Use a new empty directory for
 a changed experiment. Configuration comparison does not freeze prompt versions
 or identify every historical code revision.
@@ -115,13 +115,18 @@ validation in the current implementation; there is no model factuality reviewer.
 Recorded attempts do not necessarily recover all earlier invocations of a
 resumed historical run.
 
-New summaries record `prompt_version: 2` and `prompt_constraints` (target words,
-suggested sentence count and sentence length). The default target is 95 words
-in five roughly 18–20 word sentences; the accepted range remains 80–110.
+New summaries record `prompt_version: 3` and `prompt_constraints` (target words,
+suggested sentence count and sentence length). The soft target is independently
+configured and defaults to 95 words in five roughly 18–20 word sentences. The
+CLI's default accepted range remains 80–110; the current Colab notebook explicitly
+uses 60–110 with the same 95-word target.
 All generation overrides use one independent `GenerationConfig`, with no
 competing `max_length` and with a padding token set explicitly when available.
 A malformed answer gets at most twice the original token budget on retry;
-a structurally valid draft uses the original budget for length correction.
+a structurally valid draft uses the original budget for length correction. If
+the same invalid output is returned twice, the final attempt keeps the complete
+original source but removes the rejected assistant draft and requests a fresh
+rewrite; `repeated_invalid_output` records this transition.
 Valid older summaries remain reusable and retain their original metadata;
 prompt versions can therefore differ within a resumed run.
 In the submitted collection, Bunsen records version 2; the other seven accepted

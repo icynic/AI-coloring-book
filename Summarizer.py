@@ -14,7 +14,8 @@ from summary_validation import fit_summary_length, parse_response, split_source_
 
 DEFAULT_MODEL = "Qwen/Qwen3.5-4B"
 DEFAULT_MODEL_REVISION = "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a"
-PROMPT_VERSION = 2
+DEFAULT_TARGET_WORDS = 95
+PROMPT_VERSION = 3
 
 
 class SummaryGenerationError(ValueError):
@@ -129,19 +130,26 @@ class Summarizer:
         target_age="10-14",
         min_words=80,
         max_words=110,
+        target_words=DEFAULT_TARGET_WORDS,
         max_new_tokens=1024,
         max_attempts=3,
     ):
         sentences = self.split_source_sentences(text)
         if not sentences:
             raise ValueError("Cannot summarize empty source text.")
-        if min_words < 1 or min_words > max_words or max_new_tokens < 1 or max_attempts < 1:
+        if (
+            min_words < 1
+            or min_words > max_words
+            or type(target_words) is not int
+            or not min_words <= target_words <= max_words
+            or max_new_tokens < 1
+            or max_attempts < 1
+        ):
             raise ValueError("Invalid summary length or attempt settings.")
 
         numbered_source = "\n".join(
             f"[{index}] {sentence}" for index, sentence in enumerate(sentences, start=1)
         )
-        target_words = (min_words + max_words) // 2
         sentence_count = max(1, (target_words + 9) // 19)
         sentence_min = max(1, (max(min_words, target_words - 5)) // sentence_count)
         sentence_max = max(sentence_min, (min(max_words, target_words + 5) + sentence_count - 1) // sentence_count)
@@ -199,6 +207,7 @@ class Summarizer:
 
         attempts = []
         record = None
+        previous_invalid_output = None
         for attempt in range(max_attempts):
             # Extra space only helps malformed/truncated output. A length
             # correction needs a shorter answer, not a progressively larger cap.
@@ -221,14 +230,48 @@ class Summarizer:
                 record = fit_summary_length(record, text, min_words, max_words)
                 word_count = validate_summary(record, text, min_words, max_words)
             except ValueError as exc:
+                actual_words = len(record["summary"].split()) if record is not None else None
+                invalid_output = " ".join(
+                    (record["summary"] if record is not None else raw_text).split()
+                )
+                repeated_invalid_output = (
+                    previous_invalid_output is not None
+                    and invalid_output == previous_invalid_output
+                )
+                attempt_record["repeated_invalid_output"] = repeated_invalid_output
                 attempt_record["error"] = str(exc)
                 attempts.append(attempt_record)
                 print(f"[summarize] Invalid answer ({attempt + 1}/{max_attempts}): {exc}", flush=True)
-                feedback = f"VALIDATION FEEDBACK: {exc}\n{output_contract}"
+                if repeated_invalid_output:
+                    if actual_words is not None and actual_words < min_words:
+                        rewrite_strategy = (
+                            "Add important achievements or life details explicitly supported by SOURCE. "
+                        )
+                    elif actual_words is not None and actual_words > max_words:
+                        rewrite_strategy = (
+                            "Select fewer important details and express them concisely. "
+                        )
+                    else:
+                        rewrite_strategy = "Select an appropriate set of important source-supported details. "
+                    feedback = (
+                        "FRESH REWRITE REQUIRED: The previous invalid answer did not change. "
+                        "Write a new biography from SOURCE from scratch and do not copy the "
+                        "previous wording. "
+                        f"Use {sentence_count} complete sentences, aim for {target_words} words, "
+                        f"and stay within the required {min_words}-{max_words} word range. "
+                        f"{rewrite_strategy}"
+                        "Retain a Marburg connection only if explicitly supported by SOURCE, and "
+                        "update the evidence IDs.\n"
+                        f"{output_contract}"
+                    )
+                    # Keep the complete original SOURCE, but remove the rejected
+                    # assistant draft so it cannot anchor another identical answer.
+                    messages = list(original_messages)
+                else:
+                    feedback = f"VALIDATION FEEDBACK: {exc}\n{output_contract}"
                 # A structurally valid draft can be revised directly. Never put
                 # rejected reasoning or malformed JSON back into the conversation.
-                if record is not None:
-                    actual_words = len(record["summary"].split())
+                if record is not None and not repeated_invalid_output:
                     if actual_words < min_words:
                         feedback += (
                             f" The biography alone has {actual_words} words. Aim for {target_words}; "
@@ -246,9 +289,10 @@ class Summarizer:
                         )
                     messages = original_messages + [{"role": "assistant", "content": [
                         {"type": "text", "text": json.dumps(record, ensure_ascii=False)}]}]
-                else:
+                elif not repeated_invalid_output:
                     messages = list(original_messages)
                 messages = messages + [{"role": "user", "content": [{"type": "text", "text": feedback}]}]
+                previous_invalid_output = invalid_output
                 continue
             attempts.append(attempt_record)
             if record.get("length_adjustment"):

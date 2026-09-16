@@ -68,8 +68,13 @@ a **new** directory, not the archived `final_run_v2`:
 
 ```bash
 python -m pip install -r requirements-colab.txt
-python -u main.py --output-dir /content/reproduction_t4 --seed 42 --summary-min-words 80 --summary-max-words 110 --t4-safe-mode --no-fuzzy-search
+python -u main.py --output-dir /content/reproduction_t4 --seed 42 --summary-min-words 60 --summary-max-words 110 --summary-target-words 95 --t4-safe-mode --no-fuzzy-search
 ```
+
+The current notebook accepts 60--110 words while keeping a separate 95-word
+soft target. Lowering the accepted minimum therefore no longer asks Qwen to
+write a shorter biography. The archived evaluated `final_run_v2` used an
+80--110-word policy and is not modified by this current-run recommendation.
 
 `/content` is temporary; use the notebook's mounted Drive path to retain a run
 across runtime replacement. Neither requirements file installs PyTorch.
@@ -83,7 +88,8 @@ is the exact Wikipedia query. Override with
 `--names "Otto Hahn" "K. Ferdinand Braun"`, or `--names-file people.txt` for
 a UTF-8 file containing one name per line.
 
-To resume, keep the same directory, ordered names, and settings. Valid sources,
+To resume, keep the same directory, ordered names, and settings, including the
+accepted word range and soft target. Valid sources,
 biographies, and existing drawings are reused. Changed configuration, old
 manifest schemas, and unknown nonempty directories are rejected; choose a new
 empty directory instead. `--force` deliberately regenerates stages in a

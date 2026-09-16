@@ -25,6 +25,10 @@ import os
 from pathlib import Path
 import time
 
+import logging
+
+logging.getLogger("bitsandbytes.autograd._functions").setLevel(logging.ERROR)
+
 os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
 
 import torch

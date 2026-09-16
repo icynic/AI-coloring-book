@@ -28,6 +28,7 @@ DEFAULT_QWEN_MODEL = "Qwen/Qwen3.5-4B"
 DEFAULT_FLUX_MODEL = "black-forest-labs/FLUX.2-klein-4B"
 DEFAULT_QWEN_REVISION = "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a"
 DEFAULT_FLUX_REVISION = "e7b7dc27f91deacad38e78976d1f2b499d76a294"
+DEFAULT_SUMMARY_TARGET_WORDS = 95
 
 
 def utc_now():
@@ -137,6 +138,8 @@ def resolve_summary_word_range(args, saved_range=(80, 110)):
     upper = args.summary_max_words if args.summary_max_words is not None else saved_range[1]
     if type(lower) is not int or type(upper) is not int or not 1 <= lower <= upper:
         raise ValueError("Summary word range must satisfy 1 <= minimum <= maximum.")
+    if type(args.summary_target_words) is not int or not lower <= args.summary_target_words <= upper:
+        raise ValueError("Summary target words must be an integer within the accepted word range.")
     args.summary_min_words, args.summary_max_words = lower, upper
     return [lower, upper]
 
@@ -230,6 +233,7 @@ def summarization_stage(records, paths, args):
                         target_age=args.target_age,
                         min_words=args.summary_min_words,
                         max_words=args.summary_max_words,
+                        target_words=args.summary_target_words,
                     )
                     summary.update(
                         {
@@ -257,7 +261,8 @@ def summarization_stage(records, paths, args):
                                     "source_text_sha256": text_sha256(record["source"]["summary"]),
                                     "model_id": args.qwen_model, "model_revision": args.qwen_revision,
                                     "quantization": args.qwen_quantization, "target_age": args.target_age,
-                                    "requested_word_range": [args.summary_min_words, args.summary_max_words]},
+                                    "requested_word_range": [args.summary_min_words, args.summary_max_words],
+                                    "target_words": args.summary_target_words},
                     })
         finally:
             summarizer.cleanup()
@@ -416,7 +421,7 @@ def run_configuration(args, names):
     keys = ("qwen_model", "qwen_revision", "qwen_quantization", "flux_model",
             "flux_revision", "flux_quantization", "flux_steps", "guidance_scale",
             "max_side", "max_sequence_length", "flux_offload", "vae_tiling",
-            "seed", "target_age", "t4_safe_mode", "no_fuzzy_search")
+            "seed", "target_age", "summary_target_words", "t4_safe_mode", "no_fuzzy_search")
     return {"names": names, **{key: getattr(args, key) for key in keys},
             "summary_word_range": [args.summary_min_words, args.summary_max_words]}
 
@@ -440,6 +445,7 @@ def run_pipeline(args):
     print(f"Run directory: {run_dir}")
     print(f"People: {', '.join(names)}")
     print(f"Summary word range: {args.summary_min_words}-{args.summary_max_words}")
+    print(f"Summary soft target: {args.summary_target_words} words")
 
     records = fetch_stage(
         names,
@@ -492,6 +498,8 @@ def parse_args(argv=None):
                         help="Minimum biography words (default: 80).")
     parser.add_argument("--summary-max-words", type=int, default=None,
                         help="Maximum biography words (default: 110).")
+    parser.add_argument("--summary-target-words", type=int, default=DEFAULT_SUMMARY_TARGET_WORDS,
+                        help="Soft biography target within the accepted range (default: 95).")
     parser.add_argument("--no-fuzzy-search", action="store_true")
     parser.add_argument("--force", action="store_true", help="Regenerate existing stage outputs.")
     parser.add_argument("--skip-summarization", action="store_true")
