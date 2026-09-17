@@ -145,6 +145,11 @@ Then run the last inspection cell. A successful full run requires:
 - The manifest has a non-null `book_path` and the PDF exists.
 - `coloring_book.pdf` has eight pages, each containing its portrait, biography, and source/portrait credits. A smoke test should have two pages instead.
 
+When a valid book exists, the inspection cell prints its Drive/runtime path and
+uses `google.colab.files.download` to start a real browser download. It does not
+use `IPython.display.FileLink`, whose `/content/...` URL can be rewritten as an
+unusable `https://localhost:8080/...` link outside the Colab kernel.
+
 Inspect the PDF rather than assuming that successful generation establishes factual accuracy or visual quality. Validation checks structure, length, and source/evidence bookkeeping; it does not prove that every factual claim follows from its cited sentences.
 
 To resume, use the **same code copy, directory, ordered names, and settings**,
