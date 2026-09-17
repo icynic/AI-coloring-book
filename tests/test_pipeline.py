@@ -36,7 +36,12 @@ class PipelineHelpersTest(unittest.TestCase):
 
     def test_full_colab_notebook_has_valid_code_and_no_repair_cells(self):
         notebook_path = Path(__file__).resolve().parents[1] / "colab/AIColoringBook.ipynb"
-        notebook = json.loads(notebook_path.read_text(encoding="utf-8"))
+        notebook_text = notebook_path.read_text(encoding="utf-8")
+        self.assertFalse(
+            any("\u4e00" <= character <= "\u9fff" for character in notebook_text),
+            "The distributed Colab notebook must keep comments and user-facing output in English.",
+        )
+        notebook = json.loads(notebook_text)
         for index, cell in enumerate(notebook["cells"]):
             if cell["cell_type"] != "code":
                 continue
