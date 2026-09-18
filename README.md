@@ -6,6 +6,8 @@ biography; the saved portrait goes separately to FLUX.2 [klein] 4B for line art.
 ReportLab combines the results into individual pages and a complete PDF.
 No model is trained or fine-tuned for this project.
 
+- **Watch the demo:** [AI Coloring Book demo (MP4)](https://github.com/icynic/AI-coloring-book/releases/download/Output/ai_coloring_book_demo.mp4)
+
 ## Start here
 
 - **Inspect the submitted prototype:** open the
