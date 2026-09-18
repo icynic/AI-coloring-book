@@ -1,6 +1,9 @@
 \section{Reproducibility Details}
 \label{app:reproducibility}
 
+% Latin Modern supplies the literal grave glyph absent from Times TS1.
+\newcommand{\ShellContinue}{{\fontfamily{lmr}\selectfont\textasciigrave}}
+
 \subsection{Saved Artifacts and Configuration}
 
 Paths below are relative to the project repository, \url{https://github.com/icynic/AI-coloring-book}. The evaluated prototype is in \nolinkurl{output/final_run_v2}; its downloaded manifest still contains original Colab Drive paths. The corresponding local files, rather than those absolute paths, are the evaluation inputs. The paired baseline is in \nolinkurl{evaluation/baseline_run_v2}, image measurements in \nolinkurl{evaluation/automatic_results_v2}, and the biography audit in \nolinkurl{evaluation/biography_results_v2}. Earlier result directories refer to a different subject set and must not be substituted.
@@ -114,10 +117,56 @@ and this separate negative prompt:
 shadow, shading, gradients, stippling, screentone, texture, background details, flowers, plants, stripes, grayscale, colored, 3d, realistic, photo, noise, blurry, deformed, filled, filled-in, filled-in lines, filled-in shapes, filled-in patterns, filled background
 \end{quote}
 
+\subsection{Post-Hoc Informative Drawings Comparator}
+
+After freezing the paired FLUX--SD1.5 analysis, we ran the released
+\emph{anime\_style} checkpoint from Informative Drawings
+\citep{chan-etal-2022-informative-drawings} once on each of the same eight
+saved source portraits. The outputs appear only in
+Appendix~\ref{app:examples}; they do not enter
+Table~\ref{tab:image-results}, statistical testing, or model selection. Every
+subject is shown, with no candidate reranking, manual correction, or formal-run
+regeneration.
+
+The code was obtained from
+\url{https://github.com/carolineec/informative-drawings} at commit
+\nolinkurl{2349aee4daf7cb01d8de645b0bbb4f4392fd1395}. The released
+\nolinkurl{anime_style/netG_A_latest.pth} file has SHA-256
+\nolinkurl{c686ced2a666b4850b4bb6ccf0748031}\allowbreak
+\nolinkurl{c3eda9f822de73a34b8979970d90f0c6}.
+The run used Windows 11, Python 3.14.7, PyTorch 2.10.0, Torchvision 0.25.0,
+Pillow 12.3.0, NumPy 2.5.2, CUDA 12.8, and an NVIDIA GeForce RTX 3050
+Laptop GPU. This is execution of the released code and checkpoint in a modern
+environment, not reconstruction of the paper's PyTorch 1.7.1 environment.
+
+At test time, the released script resizes each portrait's shorter edge to 256
+pixels with bicubic interpolation while retaining aspect ratio, then performs
+one feed-forward generator pass. It exposes no diffusion prompt, guidance
+value, or sampling seed. Input files were byte-identical staging copies of
+\nolinkurl{output/final_run_v2/sources/images}. Braun's staged filename omitted
+the period in \nolinkurl{K._Ferdinand_Braun} because the upstream loader splits
+basenames at the first period; the canonical output name was restored without
+changing its pixels. From the Informative Drawings checkout, the command below
+abbreviates the two recorded absolute paths as \nolinkurl{STAGED_INPUTS} and
+\nolinkurl{RAW_OUTPUTS}; the manifest retains the exact invocation.
+
+\begin{quote}\small\raggedright
+conda run -{}-no-capture-output -n drawings python test.py \ShellContinue{}\\
+\quad -{}-name anime\_style \ShellContinue{}\\
+\quad -{}-dataroot STAGED\_INPUTS \ShellContinue{}\\
+\quad -{}-results\_dir RAW\_OUTPUTS
+\end{quote}
+
+The formal process produced eight outputs in 8.777 seconds including process
+startup, with no recorded errors; this uncontrolled local timing is not
+compared with the other systems. The tracked
+\nolinkurl{evaluation/informative_drawings_v2/manifest.json} records the exact
+command, environment, filename mapping, dimensions, and SHA-256 hashes for all
+inputs and outputs. The report copies the eight PNGs without image-content
+modification.
+
 \subsection{New Runs and Saved-Artifact Recalculation}
 
-% Latin Modern supplies the literal grave glyph absent from Times TS1.
-\newcommand{\ShellContinue}{{\fontfamily{lmr}\selectfont\textasciigrave}}
 Commands run from the repository root. For a \emph{new} Colab T4 run, install \nolinkurl{requirements-colab.txt} and use the following Bash command, where the backslashes continue lines:
 \begin{quote}\small\raggedright
 python -u main.py \textbackslash{}\\

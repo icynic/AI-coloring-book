@@ -1,23 +1,15 @@
-% Fixed-height cells align labels and avoid stretching heterogeneous outputs.
-\newcommand{\BookExamplePair}[2]{%
-  \begin{minipage}[t]{0.48\textwidth}
-    \centering
-    \textbf{#1}\par\smallskip
-    \begin{tabular}{@{}c@{\hspace{0.02\linewidth}}c@{}}
-      \makebox[0.47\linewidth]{FLUX} &
-      \makebox[0.47\linewidth]{SD1.5 baseline} \\[2pt]
-      \begin{minipage}[c][0.29\textheight][c]{0.47\linewidth}
-        \centering
-        \includegraphics[width=\linewidth,height=0.28\textheight,keepaspectratio]
-          {figures/flux_#2.png}
-      \end{minipage} &
-      \begin{minipage}[c][0.29\textheight][c]{0.47\linewidth}
-        \centering
-        \includegraphics[width=\linewidth,height=0.28\textheight,keepaspectratio]
-          {figures/baseline_#2.png}
-      \end{minipage}
-    \end{tabular}
-  \end{minipage}%
+% Full-width rows keep all three methods legible while preserving fixed order.
+\newcommand{\BookExampleRow}[2]{%
+  \multicolumn{3}{c}{\textbf{#1}} \\[2pt]
+  \includegraphics[
+    width=0.29\textwidth,height=0.145\textheight,keepaspectratio]
+    {figures/flux_#2.png} &
+  \includegraphics[
+    width=0.29\textwidth,height=0.145\textheight,keepaspectratio]
+    {figures/baseline_#2.png} &
+  \includegraphics[
+    width=0.29\textwidth,height=0.145\textheight,keepaspectratio]
+    {figures/informative_#2.png} \\[7pt]
 }
 
 \begin{figure*}[p]
@@ -25,44 +17,53 @@
   \begin{minipage}{\textwidth}
     \section{Unedited Output Examples}
     \label{app:examples}
-    Figures~\ref{fig:unedited-pairs-first} and~\ref{fig:unedited-pairs-second}
-    show all eight current subjects in list order, using the same saved image
-    outputs measured in Table~\ref{tab:image-results}. The PNG assets are exact
-    copies; scaling here is solely for presentation. Figure~\ref{fig:unedited-book-page}
-    shows the original book's first page, Otto Hahn, rather than a selected
-    best-looking page. These illustrations are not new experiments or human
-    preference ratings, and no generated text or drawing has been corrected.
-  \end{minipage}\par\vspace{14pt}
+    Figures~\ref{fig:unedited-comparison-first} and
+    \ref{fig:unedited-comparison-second} show all eight current subjects in
+    fixed list order. The FLUX and SD1.5 columns are the same saved outputs
+    measured in Table~\ref{tab:image-results}. The Informative Drawings column
+    was generated later, once per same saved portrait, using the released
+    \emph{anime\_style} checkpoint and is included only for qualitative
+    context. Every output is shown; scaling is solely for presentation, with
+    no reranking or image correction. Figure~\ref{fig:unedited-book-page}
+    remains the unchanged first book page.
+  \end{minipage}\par\vspace{10pt}
   \centering
   \small
-  \begin{tabular}{@{}c@{\hspace{0.03\textwidth}}c@{}}
-    \BookExamplePair{Otto Hahn}{Otto_Hahn} &
-    \BookExamplePair{Robert Bunsen}{Robert_Bunsen} \\[14pt]
-    \BookExamplePair{Emil von Behring}{Emil_von_Behring} &
-    \BookExamplePair{Jacob Grimm}{Jacob_Grimm}
+  \begin{tabular}{@{}ccc@{}}
+    \textbf{FLUX} & \textbf{SD1.5 baseline} &
+      \textbf{Informative Drawings} \\[3pt]
+    \BookExampleRow{Otto Hahn}{Otto_Hahn}
+    \BookExampleRow{Robert Bunsen}{Robert_Bunsen}
+    \BookExampleRow{Emil von Behring}{Emil_von_Behring}
+    \BookExampleRow{Jacob Grimm}{Jacob_Grimm}
   \end{tabular}
-  \caption{Unedited image pairs for current subjects 1--4. Within each pair,
-    FLUX is left and the SD1.5 baseline is right. These are the same saved
-    outputs used in the evaluation, scaled only for presentation; they are
-    illustrative, not human ratings or a new selection among generated candidates.}
-  \label{fig:unedited-pairs-first}
+  \caption{All-case visual comparison for current subjects 1--4. FLUX and
+    SD1.5 are the evaluated outputs; Informative Drawings is a post-hoc
+    qualitative comparator. All three columns use the same saved source
+    portraits with method-specific preprocessing. The exact generated files
+    are scaled only for presentation; no reranking, correction, or human
+    rating is represented.}
+  \label{fig:unedited-comparison-first}
 \end{figure*}
 
 \begin{figure*}[p]
   \centering
   \small
-  \begin{tabular}{@{}c@{\hspace{0.03\textwidth}}c@{}}
-    \BookExamplePair{Hannah Arendt}{Hannah_Arendt} &
-    \BookExamplePair{K. Ferdinand Braun}{K._Ferdinand_Braun} \\[14pt]
-    \BookExamplePair{Alfred Wegener}{Alfred_Wegener} &
-    \BookExamplePair{Boris Pasternak}{Boris_Pasternak}
+  \begin{tabular}{@{}ccc@{}}
+    \textbf{FLUX} & \textbf{SD1.5 baseline} &
+      \textbf{Informative Drawings} \\[3pt]
+    \BookExampleRow{Hannah Arendt}{Hannah_Arendt}
+    \BookExampleRow{K. Ferdinand Braun}{K._Ferdinand_Braun}
+    \BookExampleRow{Alfred Wegener}{Alfred_Wegener}
+    \BookExampleRow{Boris Pasternak}{Boris_Pasternak}
   \end{tabular}
-  \caption{Unedited image pairs for current subjects 5--8, continuing the
-    fixed list order. FLUX is left and the SD1.5 baseline is right within
-    each pair. Exact saved outputs are scaled only for this illustration;
-    no image-quality reranking, corrections, new trials, or human evaluation
-    is represented.}
-  \label{fig:unedited-pairs-second}
+  \caption{All-case visual comparison for current subjects 5--8, continuing
+    the fixed order. FLUX and SD1.5 are the evaluated outputs; Informative
+    Drawings is a post-hoc qualitative comparator. All three columns use the
+    same saved source portraits with method-specific preprocessing. Exact
+    generated files are scaled only for presentation; no reranking,
+    correction, or human rating is represented.}
+  \label{fig:unedited-comparison-second}
 \end{figure*}
 
 \begin{figure*}[p]

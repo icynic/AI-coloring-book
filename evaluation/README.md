@@ -69,11 +69,18 @@ the core CLI, Colab notebook, baseline and image evaluation.
 | [Image evaluation provenance](automatic_results_v2/automatic_evaluation.json) | Metric definitions, runtime, canvas settings and resolved DINOv2 revision |
 | [Biography audit](biography_results_v2/biography_audit.md) | Integrity, approximate readability and source-review findings |
 | [Claim annotations](biography_results_v2/claim_annotations.json) | Archived qualitative labels, evidence IDs, text hashes and reviewer provenance |
+| [Informative Drawings comparator](informative_drawings_v2/README.md) | Eight appendix-only outputs plus code, checkpoint, environment and hash provenance |
 
 The baseline used the exact downloaded source portraits and seeds 42-49,
 matching the FLUX metadata. Source hashes and seed pairing were checked; the
 original Colab outputs were verified byte-for-byte unchanged. No images were
 chosen from multiple candidate seeds.
+
+After the quantitative analysis was frozen, the released Informative Drawings
+`anime_style` checkpoint was run once on all eight same source portraits. These
+images provide all-case qualitative context in the report appendix. They are
+not part of `automatic_results_v2`, any significance test, or model selection;
+no quantitative result below includes them.
 
 Key image results are mean DINOv2 source similarity 0.4634 for FLUX versus
 0.3869 for SD1.5 (7/8 higher; exact paired p = 0.0625), white space 89.57%
@@ -250,9 +257,8 @@ The current cohort replaced Philip I and Gertrud von Le Fort after image-quality
 inspection. The original `output/evaluation_flux_t4`, `baseline_run`,
 `automatic_results`, `biography_results`, A/B images and hash-bound
 `biography_claim_annotations.json` describe the original cohort, not this run;
-they are preserved and must not be overwritten or relabeled. The former subject
-table is available in Git history. Report post-hoc replacements, length-policy
-changes, resource constraints, every intended subject and any failures. Keep
-the less successful original examples when discussing limitations. The final
-prototype and evaluated text remain unchanged; manual text polishing is not
-part of these evaluation commands.
+they are not submission artifacts and remain available in Git history. They
+must not be substituted for or relabeled as the current cohort. Report post-hoc
+replacements, length-policy changes, resource constraints, every intended
+subject and any failures. The final prototype and evaluated text remain
+unchanged; manual text polishing is not part of these evaluation commands.

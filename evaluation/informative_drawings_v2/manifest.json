@@ -1,0 +1,169 @@
+{
+  "schema_version": 1,
+  "status": "complete",
+  "method": "Informative Drawings",
+  "comparison_role": "post-hoc qualitative comparator",
+  "included_in_quantitative_evaluation": false,
+  "upstream": {
+    "repository": "https://github.com/carolineec/informative-drawings.git",
+    "commit": "2349aee4daf7cb01d8de645b0bbb4f4392fd1395",
+    "commit_date": "2024-08-31",
+    "tracked_files_modified": false
+  },
+  "checkpoint": {
+    "name": "anime_style",
+    "file": "checkpoints/anime_style/netG_A_latest.pth",
+    "bytes": 17173511,
+    "sha256": "c686ced2a666b4850b4bb6ccf0748031c3eda9f822de73a34b8979970d90f0c6"
+  },
+  "protocol": {
+    "formal_runs": 1,
+    "formal_reruns": 0,
+    "style_selected_before_formal_outputs": true,
+    "candidate_reranking": false,
+    "manual_image_edits": false,
+    "formal_run_started_utc": "2026-09-18T14:59:16.8594536Z",
+    "formal_run_ended_utc": "2026-09-18T14:59:25.6364795Z",
+    "elapsed_seconds_including_process_startup": 8.777,
+    "working_directory": "D:/Projects/Cloned_Projects/informative-drawings",
+    "command": "conda run --no-capture-output -n drawings python test.py --name anime_style --dataroot D:\\Projects\\AIColoringBook\\output\\informative_drawings_work\\inputs_sanitized --results_dir D:\\Projects\\AIColoringBook\\output\\informative_drawings_work\\raw",
+    "smoke_test": "The three upstream example images were processed before the formal run.",
+    "errors": []
+  },
+  "effective_inference_settings": {
+    "which_epoch": "latest",
+    "batch_size": 1,
+    "size": 256,
+    "no_flip": true,
+    "device": "cuda",
+    "input_transform": "Resize the shorter edge to 256 pixels with bicubic interpolation, preserve aspect ratio, then convert to tensor.",
+    "sampling_seed": null,
+    "prompt": null
+  },
+  "environment": {
+    "conda_environment": "drawings",
+    "python": "3.14.7",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "torch": "2.10.0",
+    "torchvision": "0.25.0",
+    "pillow": "12.3.0",
+    "numpy": "2.5.2",
+    "cuda_runtime": "12.8",
+    "cudnn": 92501,
+    "gpu": "NVIDIA GeForce RTX 3050 Laptop GPU"
+  },
+  "items": [
+    {
+      "subject": "Otto Hahn",
+      "source_file": "output/final_run_v2/sources/images/Otto_Hahn.jpg",
+      "source_bytes": 440196,
+      "source_width": 1157,
+      "source_height": 1536,
+      "source_sha256": "484b53a394801794e772a6c0467aa4cef8d5508fd87f2552aa06d81fe95c76cf",
+      "output_file": "generated_images/Otto_Hahn.png",
+      "output_bytes": 92264,
+      "output_width": 256,
+      "output_height": 340,
+      "output_sha256": "eb12e71cb20faf1d0b26ef8315795bbe91b65c81d74f84de70112df496129ad2"
+    },
+    {
+      "subject": "Robert Bunsen",
+      "source_file": "output/final_run_v2/sources/images/Robert_Bunsen.jpg",
+      "source_bytes": 1485509,
+      "source_width": 2544,
+      "source_height": 2604,
+      "source_sha256": "b6da9af65475d801c917d12c025f237ee89211ae3625edfdd1505b50ca1da284",
+      "output_file": "generated_images/Robert_Bunsen.png",
+      "output_bytes": 59632,
+      "output_width": 256,
+      "output_height": 264,
+      "output_sha256": "1ab7a27fedb3315368761cf3f91f951b4bb085939402d1e1ae31f33d54c6e323"
+    },
+    {
+      "subject": "Emil von Behring",
+      "source_file": "output/final_run_v2/sources/images/Emil_von_Behring.jpg",
+      "source_bytes": 876466,
+      "source_width": 1887,
+      "source_height": 2717,
+      "source_sha256": "7ea0da3f6a6a966f19369a3f4ce01d8c2249f0ae2399bebdfe5009aedaf9b36c",
+      "output_file": "generated_images/Emil_von_Behring.png",
+      "output_bytes": 90998,
+      "output_width": 256,
+      "output_height": 368,
+      "output_sha256": "a5a762857049c632e8f62abd094abad53512863dcb5fe732f5687ea43267d8d6"
+    },
+    {
+      "subject": "Jacob Grimm",
+      "source_file": "output/final_run_v2/sources/images/Jacob_Grimm.jpg",
+      "source_bytes": 27176,
+      "source_width": 259,
+      "source_height": 294,
+      "source_sha256": "55d3fa18c37904d90d89439fef6daefba89528fa0086fa7d9a79d466c8f678eb",
+      "output_file": "generated_images/Jacob_Grimm.png",
+      "output_bytes": 72205,
+      "output_width": 256,
+      "output_height": 292,
+      "output_sha256": "2c5f427c40cff249193c7c40c0fd67752b10eae4c4555f04fa619a68b5027e31"
+    },
+    {
+      "subject": "Hannah Arendt",
+      "source_file": "output/final_run_v2/sources/images/Hannah_Arendt.jpg",
+      "source_bytes": 2152260,
+      "source_width": 1323,
+      "source_height": 1740,
+      "source_sha256": "a38ce62689c457e1f2c20eedb89214b1428a98e22118df40745382159ccf45ae",
+      "output_file": "generated_images/Hannah_Arendt.png",
+      "output_bytes": 85456,
+      "output_width": 256,
+      "output_height": 336,
+      "output_sha256": "688cfdbfa1e01a5e27b2289029b4e96f45ebd408b6f5df7df09b5d611a580f66"
+    },
+    {
+      "subject": "K. Ferdinand Braun",
+      "source_file": "output/final_run_v2/sources/images/K._Ferdinand_Braun.jpg",
+      "staged_filename": "K_Ferdinand_Braun.jpg",
+      "source_bytes": 161031,
+      "source_width": 747,
+      "source_height": 1024,
+      "source_sha256": "69869db2119d6fa8f0a7a6d5dcc18b71bbd804aa52160f14009be9c09776d7ac",
+      "output_file": "generated_images/K._Ferdinand_Braun.png",
+      "output_bytes": 115205,
+      "output_width": 256,
+      "output_height": 352,
+      "output_sha256": "eea04e8308e48c8d83f3b56b9f07372fb5c86307f66d2baa5580087249a5838f"
+    },
+    {
+      "subject": "Alfred Wegener",
+      "source_file": "output/final_run_v2/sources/images/Alfred_Wegener.jpg",
+      "source_bytes": 500107,
+      "source_width": 1224,
+      "source_height": 1480,
+      "source_sha256": "6b0ecd77b88b50f6c86e521918ac3ab60e68ae07a46ac74a27725187444d70d7",
+      "output_file": "generated_images/Alfred_Wegener.png",
+      "output_bytes": 87550,
+      "output_width": 256,
+      "output_height": 312,
+      "output_sha256": "1ec86cc88d5764e611c1ef06bf1288427c0082e992d6e1b0787352b3049fba20"
+    },
+    {
+      "subject": "Boris Pasternak",
+      "source_file": "output/final_run_v2/sources/images/Boris_Pasternak.jpg",
+      "source_bytes": 1018053,
+      "source_width": 1516,
+      "source_height": 2021,
+      "source_sha256": "f9c20f29c660916f95a10659e146304b533030feafa4c7ee14decb3c97dc3a8c",
+      "output_file": "generated_images/Boris_Pasternak.png",
+      "output_bytes": 93134,
+      "output_width": 256,
+      "output_height": 344,
+      "output_sha256": "66f0229d0e1be08959f1b0cb289f9f18fca1bb73a1047bbb5e4e5a7cde7eec74"
+    }
+  ],
+  "validation": {
+    "expected_outputs": 8,
+    "actual_outputs": 8,
+    "all_outputs_opened_with_pillow": true,
+    "raw_and_tracked_sha256_match": true,
+    "report_figure_copies_sha256_match": true
+  }
+}

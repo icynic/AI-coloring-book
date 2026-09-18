@@ -16,16 +16,17 @@ before submission; confirm the working title at the same time.
 - `appendix_reproducibility.tex`: saved configuration, current prompt templates,
   installation specification, commands, artifact locations, current source-file
   SHA-256 hashes, and provenance limits.
-- `appendix_examples.tex`: all eight current image pairs and the unchanged first
-  generated book page.
-- `figures/`: exact copies of the evaluated drawings plus a rendering of the
-  first generated page. These assets make report compilation self-contained.
+- `appendix_examples.tex`: all eight three-method image comparisons and the
+  unchanged first generated book page.
+- `figures/`: exact copies of the 16 quantitatively evaluated drawings, eight
+  post-hoc Informative Drawings outputs, and a rendering of the first generated
+  page. These assets make report compilation self-contained.
 - `references.bib`: cited papers, model cards, and resource documentation.
 - `acl-template/`: unchanged official ACL files.
 
-The verified PDF has 15 pages: content ends on page 8, references occupy pages
-8-9, reproducibility details pages 10-12, and unchanged output examples pages
-13-15. The course limit is eight two-column content pages; references and
+The verified PDF has 16 pages: content ends on page 8, references occupy pages
+8-9, reproducibility details pages 10-13, and unedited output comparisons plus
+the generated page occupy pages 14-16. The course limit is eight two-column content pages; references and
 informative appendices are outside that limit. All pages were rendered and
 visually checked, with no overflow or unresolved citations/references. Confirm
 pagination after every later change, especially after adding author information.
@@ -63,10 +64,21 @@ Reported results use only the current collection:
 - `../evaluation/biography_results_v2/`: integrity/readability checks,
   hash-bound claim annotations, review inputs, and the qualitative source audit.
 
+Appendix-only qualitative material:
+
+- `../evaluation/informative_drawings_v2/`: all eight outputs from one run of
+  the released `anime_style` checkpoint and their run provenance.
+
+The Informative Drawings images were generated after the FLUX--SD1.5
+quantitative analysis was frozen. They do not change any reported metric,
+statistical test, or conclusion, and all eight cases are displayed rather than
+a selected subset.
+
 No evaluated biography, drawing, annotation, or metric is revised for presentation.
-The examples contain all eight subjects, not a favorable subset. The displayed
-complete page is the first book page (Otto Hahn), chosen by the saved ordering.
-Graphic scaling and PDF-to-image rendering are presentation operations only.
+The comparisons contain all eight subjects, not a favorable subset. The
+displayed complete page is the first book page (Otto Hahn), chosen by the saved
+ordering. Graphic scaling and PDF-to-image rendering are presentation
+operations only.
 
 Completion includes retries and resumption. Only Bunsen's cached summary records
 prompt version 2; the other seven do not record a prompt version. The appendix
