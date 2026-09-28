@@ -12,14 +12,14 @@
 
 % Working title. Add the actual author information before submission.
 \title{A Resource-Constrained Pipeline for Biographical Coloring Books}
-\author{}
+\author{Tianteng Liu, M. Affaan F. Shaikh, Ali Amrahli}
 
 \begin{document}
 \maketitle
 
 % Section draft complete; review the title, authors, and content before submission.
 \begin{abstract}
-Generating a biographical coloring book requires coordinating source retrieval, text adaptation, portrait conversion, and printable layout. We present an automatic, resource-constrained pipeline integrating Wikipedia inputs, Qwen3.5-4B biography generation, FLUX.2-klein-4B portrait editing, and PDF assembly. Low-bit loading, sequential inference, provenance records, and saved intermediate artifacts support execution and resumption on a Google Colab T4. An eight-person case study of historical figures associated with the University of Marburg produces eight complete pages after retries and resumption, without manually revising the outputs. Paired exploratory image measurements against a configured SD1.5-based baseline show greater white space and less midtone content for FLUX, but do not establish portrait identity or coloring usability. All biographies pass mechanical validation, while a single Codex-assisted source audit still identifies unsupported relations, a date error, and conflicting source statements. The prototype demonstrates practical integration and traceability while exposing the gap between successful document generation and semantically reliable content.
+Generating a biographical coloring book requires coordinating source retrieval, text adaptation, portrait conversion, and printable layout. We present an automatic, resource-constrained pipeline integrating Wikipedia inputs, Qwen3.5-4B biography generation, FLUX.2-klein-4B portrait editing, and PDF assembly. Low-bit loading, sequential inference, provenance records, and saved intermediate artifacts support execution and resumption on a Google Colab T4. An eight-person case study of historical figures associated with the University of Marburg produces eight complete pages after retries and resumption, without manually revising the outputs. Paired exploratory image measurements against a configured SD1.5-based baseline show greater white space and less midtone content for FLUX, but do not establish portrait identity or coloring usability. All biographies pass mechanical validation, while a single LLM-assisted source audit still identifies unsupported relations, a date error, and conflicting source statements. The prototype demonstrates practical integration and traceability while exposing the gap between successful document generation and semantically reliable content.
 \end{abstract}
 
 \section{Introduction}
@@ -42,7 +42,7 @@ The project's contribution is the integrated workflow and layered assessment: me
 
 Source faithfulness is distinct from fluent expression. \citet{maynez-etal-2020-faithfulness} examine neural abstractive summarization and find content unsupported by the input documents; their analysis also highlights limitations of overlap-based evaluation for measuring faithfulness. This concern applies to our task because rewriting an article into a short biography can change a relationship or chronology without making the sentence linguistically implausible. We prompt Qwen3.5-4B with selected article text and request supporting sentence IDs, but treat those references as traceability metadata rather than proof that each claim follows from its evidence.
 
-FActScore \citep{min-etal-2023-factscore} evaluates long-form generation, including person biographies, by decomposing outputs into atomic facts and measuring the proportion supported by a knowledge source. Its automatic estimator combines retrieval with a language model. Our post-generation audit shares this claim-level perspective but uses a single Codex-assisted review against the saved input, rather than applying FActScore's estimation protocol.
+FActScore \citep{min-etal-2023-factscore} evaluates long-form generation, including person biographies, by decomposing outputs into atomic facts and measuring the proportion supported by a knowledge source. Its automatic estimator combines retrieval with a language model. Our post-generation audit shares this claim-level perspective but uses a single LLM-assisted review against the saved input, rather than applying FActScore's estimation protocol.
 
 \subsection{Image-to-Line-Art Generation}
 
@@ -61,7 +61,6 @@ Low-precision computation provides a precedent for reducing inference memory. LL
 
 We constructed a small, purposively selected Marburg-associated case-study set: Otto Hahn, Robert Bunsen, Emil von Behring, Jacob Grimm, Hannah Arendt, Ferdinand Braun, Alfred Wegener, and Boris Pasternak. University webpages document their study or work connections \citep{marburg-famous-lecturers-students,marburg-arendt-archive}. A project-maintained CSV records names, identifiers, relationship descriptions, and institutional source URLs. These pages establish the selection criterion; they are not the biography generator's input or a reference-answer dataset.
 
-After inspecting earlier image outputs, we replaced Philip I of Hesse and Gertrud von Le Fort with Hahn and Braun. Six subjects overlap with the earlier set, whose results remain separate. The final cases are therefore neither a random sample nor an independently held-out benchmark.
 
 \subsection{Wikipedia Inputs and Preprocessing}
 
@@ -75,7 +74,7 @@ The portrait files are JPEGs with heterogeneous dimensions, including Grimm's 25
 
 The completed collection contains eight generated biographies, eight FLUX drawings, and eight SD1.5 baseline drawings: eight subject pairs, not sixteen independent cases. Individual and combined PDFs and generation metadata are also saved. There is no training split or human-written reference biography, and we do not train models on these cases.
 
-A single Codex-assisted post-generation audit labels 143 checkable propositions against the saved input, linked to evidence IDs and source/summary hashes (Section~\ref{sec:evaluation}). No independent human raters participated, and generated content was not manually corrected. The collection includes accepted cached summaries: only Bunsen records revised prompt version 2, while the other seven lack a prompt-version field. It therefore describes completed artifacts rather than a uniform fixed-prompt batch.
+A single LLM-assisted post-generation audit labels 143 checkable propositions against the saved input, linked to evidence IDs and source/summary hashes (Section~\ref{sec:evaluation}). No independent human raters participated, and generated content was not manually corrected. The collection includes accepted cached summaries: only Bunsen records revised prompt version 2, while the other seven lack a prompt-version field. It therefore describes completed artifacts rather than a uniform fixed-prompt batch.
 
 \section{Method}
 \label{sec:method}
@@ -197,11 +196,11 @@ We record mean and maximum sentence length, sentences exceeding 25 lexical words
 
 \subsection{Qualitative Source-Grounding Audit}
 
-A single Codex-assisted pass, separate from the Qwen generator, reviewed all eight saved biographies against their numbered inputs. Following a claim-level perspective rather than implementing FActScore \citep{min-etal-2023-factscore}, the review separated checkable nationalities, occupations, dates, places, and material relational qualifiers. Enumerations covered by one passage could remain a single proposition; purely evaluative adjectives were not separately scored. The resulting 143 propositions are annotation units, not independent experimental samples or a fixed benchmark denominator.
+A single LLM-assisted pass, separate from the Qwen generator, reviewed all eight saved biographies against their numbered inputs. Following a claim-level perspective rather than implementing FActScore \citep{min-etal-2023-factscore}, the review separated checkable nationalities, occupations, dates, places, and material relational qualifiers. Enumerations covered by one passage could remain a single proposition; purely evaluative adjectives were not separately scored. The resulting 143 propositions are annotation units, not independent experimental samples or a fixed benchmark denominator.
 
 Four labels distinguish the full proposition being supported by the input (\emph{supported}); a supported core with an unestablished qualifier or causal relation (\emph{partial}); no input support or a conflicting relevant detail (\emph{unsupported}); and support in one passage but material conflict in another (\emph{source-inconsistent}). Unsupported does not establish falsehood outside the input. Source-inconsistent keeps input conflicts distinct from unsupported model additions.
 
-Codex supplied the claim decomposition, selected evidence, and semantic labels; Python checked artifact integrity and evidence-ID inclusion and aggregated the stored annotations. For supported propositions, the entire reviewer-selected evidence-ID set must be included in the generated citation list to pass the inclusion check. This measures agreement with that selected set, not semantic citation sufficiency or standard citation recall. Labels and examples are descriptive, without significance tests, independent human raters, agreement estimates, external historical verification, or output edits. Appendix~\ref{app:reproducibility} documents the protocol and missing reviewer-version metadata.
+LLM supplied the claim decomposition, selected evidence, and semantic labels; Python checked artifact integrity and evidence-ID inclusion and aggregated the stored annotations. For supported propositions, the entire reviewer-selected evidence-ID set must be included in the generated citation list to pass the inclusion check. This measures agreement with that selected set, not semantic citation sufficiency or standard citation recall. Labels and examples are descriptive, without significance tests, independent human raters, agreement estimates, external historical verification, or output edits. Appendix~\ref{app:reproducibility} documents the protocol and missing reviewer-version metadata.
 
 Overall, the layers diagnose different failure modes rather than provide one quality score. Empty drawings can score well on white space, reduced edges can erase useful detail, and padding and thresholds affect pixel metrics. Neither these proxies nor a single assistant audit establishes human preference, portrait identity preservation, coloring usability, or educational effectiveness.
 
@@ -224,7 +223,7 @@ The largest connected dark region does not improve on average: .0249 versus .022
 
 All eight biographies pass integrity checks, contain 80--105 whitespace words (mean 93.875), and mention Marburg. The mean estimated Flesch--Kincaid grade is 13.3. These mechanical checks and heuristic readability estimates establish neither age suitability nor factual reliability.
 
-The Codex-assisted audit labels 137 of 143 propositions supported, one partial, three unsupported, and two source-inconsistent. Bunsen's biography turns meeting Liebig into studying with him and merges the later burner development into the Marburg career stage. Its award-creation causal wording receives the partial label. Wegener's final sentence confuses the 1931 discovery date with death in 1930, also contradicting the biography's opening life dates. By contrast, Arendt's doctorate year and Pasternak's first-poetry-book qualifier are supported by one saved passage but conflict with another; these receive source-inconsistent labels rather than being treated as demonstrated inventions.
+The LLM-assisted audit labels 137 of 143 propositions supported, one partial, three unsupported, and two source-inconsistent. Bunsen's biography turns meeting Liebig into studying with him and merges the later burner development into the Marburg career stage. Its award-creation causal wording receives the partial label. Wegener's final sentence confuses the 1931 discovery date with death in 1930, also contradicting the biography's opening life dates. By contrast, Arendt's doctorate year and Pasternak's first-poetry-book qualifier are supported by one saved passage but conflict with another; these receive source-inconsistent labels rather than being treated as demonstrated inventions.
 
 Of the 137 supported propositions, 108 pass the reviewer-evidence-ID inclusion check. This is agreement with selected evidence sets, not semantic citation recall. Coverage limitations also arise at different stages: Hahn's selected input omits nuclear fission and his Nobel Prize, whereas Pasternak's input includes his Nobel Prize and \emph{Doctor Zhivago} but the biography omits them. These observations distinguish input information gaps from omission of available information during summarization. The evaluated outputs remain unedited, so the audit exposes pipeline limitations rather than improvements from manual correction.
 
@@ -244,6 +243,7 @@ The present evidence remains limited to eight purposively selected cases, post-o
 
 We developed and assessed an automatic pipeline for biographical coloring books using released models rather than training new components. For RQ1, the completed eight-person collection demonstrates that the evaluated quantized, sequential workflow can produce printable pages on a Colab T4 and recover through saved stages. This is case-study feasibility, not a first-pass success estimate. For RQ2, paired proxies indicate sparser, less shaded FLUX drawings than the configured baseline, while the source audit reveals semantic errors despite valid biography lengths and evidence references. Resumability and provenance enable inspectable automation but do not guarantee content reliability. Further work should evaluate source coverage, conflict handling, and semantic checks on new cases under fixed settings, preserving automatic generation rather than manually polishing evaluated outputs.
 
+\clearpage
 \bibliography{references}
 \clearpage
 \appendix

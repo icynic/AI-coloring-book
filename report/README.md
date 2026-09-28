@@ -7,8 +7,8 @@ The instructions below rebuild it from source.
 The report contains Abstract, Introduction, Related Work, Data and Resources,
 Method, Evaluation, Results, Discussion, Conclusion, and two informative appendices.
 It is a systems-prototype case study, not a newly trained model or a verified
-educational intervention. Author information is still empty and must be supplied
-before submission; confirm the working title at the same time.
+educational intervention. Confirm the author names and working title before
+submission.
 
 ## Files
 
@@ -24,8 +24,8 @@ before submission; confirm the working title at the same time.
 - `references.bib`: cited papers, model cards, and resource documentation.
 - `acl-template/`: unchanged official ACL files.
 
-The verified PDF has 16 pages: content ends on page 8, references occupy pages
-8-9, reproducibility details pages 10-13, and unedited output comparisons plus
+The verified PDF has 16 pages: content ends on page 8, references begin on page
+9, reproducibility details pages 10-13, and unedited output comparisons plus
 the generated page occupy pages 14-16. The course limit is eight two-column content pages; references and
 informative appendices are outside that limit. All pages were rendered and
 visually checked, with no overflow or unresolved citations/references. Confirm
