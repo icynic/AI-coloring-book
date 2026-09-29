@@ -33,7 +33,7 @@ Pasternak & 1372555189 & 799 & 49 \\
 
 The saved Qwen checkpoint is \nolinkurl{Qwen/Qwen3.5-4B}, revision \nolinkurl{851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a}, with 4-bit loading. The saved FLUX checkpoint is \nolinkurl{black-forest-labs/FLUX.2-klein-4B}, revision \nolinkurl{e7b7dc27f91deacad38e78976d1f2b499d76a294}, with 8-bit transformer/text-encoder loading, four steps, guidance 1.0, maximum side 640, and maximum sequence length 256. CPU offload and VAE tiling are false. FLUX metadata records CUDA and \emph{torch.bfloat16}, not a verified internal arithmetic profile.
 
-The baseline model identifiers are \nolinkurl{runwayml/stable-diffusion-v1-5}, \nolinkurl{lllyasviel/control_v11p_sd15_lineart}, \nolinkurl{lllyasviel/Annotators}, and \nolinkurl{beatless/AnimeLineartLoRA}. The current wrapper names the LoRA file \nolinkurl{animeoutlineV3-000008.safetensors}; it loads the adapter without explicitly setting an adapter scale. No baseline checkpoint revisions are saved or pinned. Baseline records specify CUDA, \emph{torch.float16}, 15 steps, guidance 10.0, and ControlNet conditioning scale 0.6; the scheduler and preprocessing are described in Method.
+The baseline model identifiers are \nolinkurl{runwayml/stable-diffusion-v1-5}, \nolinkurl{lllyasviel/control_v11p_sd15_lineart}, \nolinkurl{lllyasviel/Annotators}, and \nolinkurl{beatless/AnimeLineartLoRA}. The wrapper loads \nolinkurl{animeoutlineV3-000008.safetensors} without an explicit adapter scale. No baseline revisions are saved or pinned. Records specify CUDA, \emph{torch.float16}, 15 steps, guidance 10.0, and ControlNet conditioning scale 0.6; Method and Appendix~\ref{app:implementation-details} describe scheduling and preprocessing.
 
 The final resumed Colab manifest records Python 3.13.15, Linux 6.6.122 with glibc 2.39, PyTorch 2.11.0+cu128, and Tesla T4. The image-evaluation JSON records Windows 10.0.26200, Python 3.11.3, OpenCV 4.13.0, and NumPy 2.4.4. Its DINOv2-small identifier is \nolinkurl{facebook/dinov2-small}, with resolved revision \nolinkurl{ed25f3a31f01632728cabb09d1542f84ab7b0056}. The loader does not pin that revision. Baseline JSON files record device/dtype but not a complete historical package environment.
 
@@ -98,7 +98,7 @@ SOURCE:
 END SOURCE. Follow OUTPUT CONTRACT and return only the JSON object now.
 \end{quote}
 
-The italic source lines are placeholders. The implementation substitutes all saved sentences as \emph{[integer] sentence} using the shared splitter. Generation disables thinking and sampling and permits three attempts with the token-cap policy in Method. Failure feedback includes the error and contract; a parsed draft may be replayed for revision, but malformed reasoning is not. An unchanged invalid reply triggers a source-retaining fresh rewrite without the old assistant draft. This is not factual self-review. Saved responses and errors do not recover unrecorded historical prompts or attempts across resumed sessions.
+The italic lines are placeholders replaced by all saved sentences as \emph{[integer] sentence}, using the shared splitter. Method and Appendix~\ref{app:implementation-details} specify current retry and parsing rules. Saved responses and errors do not recover unrecorded historical prompts or attempts across resumed sessions.
 
 \paragraph{FLUX resolved editing prompt.}
 All eight saved FLUX metadata files contain the following same text:
@@ -116,6 +116,15 @@ and this separate negative prompt:
 \begin{quote}\small
 shadow, shading, gradients, stippling, screentone, texture, background details, flowers, plants, stripes, grayscale, colored, 3d, realistic, photo, noise, blurry, deformed, filled, filled-in, filled-in lines, filled-in shapes, filled-in patterns, filled background
 \end{quote}
+
+\subsection{Implementation Details}
+\label{app:implementation-details}
+
+\paragraph{Biography parsing and length handling.}
+The initial 1,024-token cap increases to 2,048 only after unparseable drafts; parsed invalid drafts receive validation feedback and revision instructions at the original cap. A complete JSON object may be enclosed in a complete code fence or follow a completed thinking block. Length adjustment retains the longest unchanged complete-sentence prefix within range, only for originals at most 1.25 times the upper bound, using punctuation and abbreviation heuristics. Original text and removed tails are saved without evidence reselection or semantic revalidation; arbitrary-word cutting and padding are forbidden.
+
+\paragraph{Image preprocessing and assembly.}
+FLUX applies EXIF orientation, converts to RGB, and downsizes to maximum side 640 without upscaling. Dimensions round down to multiples of 16, approximately preserving aspect ratio. Seeds use zero-based index $i$ in $42+i$. The baseline resizes to width 512 and height rounded down to a multiple of eight; its detector rescales the shorter side to 512 and aligns dimensions to multiples of 64. Individual PDFs replace targets through temporary files only after successful rendering.
 
 \subsection{Post-Hoc Informative Drawings Comparator}
 

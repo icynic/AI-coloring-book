@@ -17,6 +17,9 @@ T4 when one is available.
 
 1. [Open the notebook](https://colab.research.google.com/github/icynic/AI-coloring-book/blob/main/colab/AIColoringBook.ipynb) and select **Runtime → Change runtime type → T4 GPU**.
 2. Run the setup cells, then choose a **new output directory** in the configuration cell. The default list of eight people comes from [`evaluation/subjects.csv`](evaluation/subjects.csv).
+   The generation notebook and main CLI read only its `name` column; the other
+   fields support evaluation pairing or record why subjects were selected, not
+   model inputs or ground-truth labels.
 3. Run the pipeline and final inspection cells. A complete run downloads its
    `coloring_book.pdf` and records eight items without errors in `manifest.json`.
 
