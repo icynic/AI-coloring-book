@@ -46,9 +46,8 @@ extract `final_run_v2/` under `output/`.
 ## How it works
 
 ```text
-Names ──> Wikipedia text ──> Qwen biography ──┐
-     └──> Wikipedia portrait ──> FLUX drawing ─┼──> A4 pages ──> PDF book
-                                               ┘
+Names ──> Wikipedia text ──> Qwen biography ───┐
+     └──> Wikipedia portrait ──> FLUX drawing ─┴──> A4 pages ──> PDF book
 ```
 
 The program checks each stage before loading the next model. A missing source
