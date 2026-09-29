@@ -64,7 +64,7 @@ T4_SAFE_MODE = True
 FORCE_REGENERATE = False
 FUZZY_SEARCH = False
 SEED = 42
-SUMMARY_MIN_WORDS, SUMMARY_MAX_WORDS = 60, 110
+SUMMARY_MIN_WORDS, SUMMARY_MAX_WORDS = 50, 110
 SUMMARY_TARGET_WORDS = 95
 ```
 
@@ -118,7 +118,7 @@ To customize, set `T4_SAFE_MODE=False`. The notebook exposes `QWEN_QUANTIZATION`
 ```bash
 !python -u main.py --names "Otto Hahn" "Robert Bunsen" \
   --output-dir /content/drive/MyDrive/AIColoringBook/custom_t4 \
-  --seed 42 --summary-min-words 60 --summary-max-words 110 \
+  --seed 42 --summary-min-words 50 --summary-max-words 110 \
   --summary-target-words 95 \
   --no-fuzzy-search --qwen-quantization 4bit --flux-quantization 8bit \
   --max-side 512 --max-sequence-length 256 --flux-steps 4 \

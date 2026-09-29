@@ -243,6 +243,12 @@ The present evidence remains limited to eight purposively selected cases, post-o
 
 We developed and assessed an automatic pipeline for biographical coloring books using released models rather than training new components. For RQ1, the completed eight-person collection demonstrates that the evaluated quantized, sequential workflow can produce printable pages on a Colab T4 and recover through saved stages. This is case-study feasibility, not a first-pass success estimate. For RQ2, paired proxies indicate sparser, less shaded FLUX drawings than the configured baseline, while the source audit reveals semantic errors despite valid biography lengths and evidence references. Resumability and provenance enable inspectable automation but do not guarantee content reliability. Further work should evaluate source coverage, conflict handling, and semantic checks on new cases under fixed settings, preserving automatic generation rather than manually polishing evaluated outputs.
 
+\paragraph{Generative AI use.}
+OpenAI Codex assisted with planning, code development, Colab debugging, documentation, report drafting and editing, and one claim-level source audit. The audit supplied evidence and labels. Its model version and full instructions are unrecorded (Appendix~\ref{app:reproducibility}). Qwen3.5-4B generated biographies, FLUX.2-klein-4B generated coloring-book drawings, and SD1.5/ControlNet and Informative Drawings produced comparison images.
+
+\paragraph{Author contributions.}
+Tianteng Liu led the final system design and implementation, ran the experiments and evaluation, and prepared the report and demo. M. Affaan F. Shaikh contributed exploratory code and ideas during the initial phase. Ali Amrahli conducted initial research, contributed to the preparation of the first deliverable, and verified the presentation materials and final deliverables.
+
 \clearpage
 \bibliography{references}
 \clearpage

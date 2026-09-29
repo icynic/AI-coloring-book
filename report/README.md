@@ -1,11 +1,13 @@
 # ACL report
 
-The compiled submission PDF is available from the
+A distributed PDF is available from the
 [GitHub Release](https://github.com/icynic/AI-coloring-book/releases/download/Output/ai_coloring_book_report.pdf).
-The instructions below rebuild it from source.
+The instructions below rebuild the current source. Refresh the Release asset
+after final report edits so it matches the local PDF.
 
 The report contains Abstract, Introduction, Related Work, Data and Resources,
-Method, Evaluation, Results, Discussion, Conclusion, and two informative appendices.
+Method, Evaluation, Results, Discussion, Conclusion, generative-AI and author-
+contribution statements, and two informative appendices.
 It is a systems-prototype case study, not a newly trained model or a verified
 educational intervention. Confirm the author names and working title before
 submission.
@@ -15,7 +17,7 @@ submission.
 - `main.tex`: article, result tables, and appendix inclusion.
 - `appendix_reproducibility.tex`: saved configuration, current prompt templates,
   installation specification, commands, artifact locations, current source-file
-  SHA-256 hashes, and provenance limits.
+  SHA-256 hashes, provenance limits, and a retrospective development record.
 - `appendix_examples.tex`: all eight three-method image comparisons and the
   unchanged first generated book page.
 - `figures/`: exact copies of the 16 quantitatively evaluated drawings, eight
@@ -23,6 +25,7 @@ submission.
   page. These assets make report compilation self-contained.
 - `references.bib`: cited papers, model cards, and resource documentation.
 - `acl-template/`: unchanged official ACL files.
+- `../docs/DEVELOPMENT_RECORD.md`: dated Git milestones and local test evidence.
 
 The verified PDF has 16 pages: content ends on page 8, references begin on page
 9, reproducibility details pages 10-13, and unedited output comparisons plus

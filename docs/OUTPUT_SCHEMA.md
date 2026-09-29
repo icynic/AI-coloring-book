@@ -123,7 +123,7 @@ New summaries record `prompt_version: 3` and `prompt_constraints` (target words,
 suggested sentence count and sentence length). The soft target is independently
 configured and defaults to 95 words in five roughly 18–20 word sentences. The
 CLI's default accepted range remains 80–110; the current Colab notebook explicitly
-uses 60–110 with the same 95-word target.
+uses 50–110 with the same 95-word target.
 All generation overrides use one independent `GenerationConfig`, with no
 competing `max_length` and with a padding token set explicitly when available.
 A malformed answer gets at most twice the original token budget on retry;

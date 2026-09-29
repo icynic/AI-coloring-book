@@ -176,7 +176,7 @@ python -u main.py \textbackslash{}\\
 \quad -{}-summary-target-words 95 \textbackslash{}\\
 \quad -{}-no-fuzzy-search
 \end{quote}
-With no names, the CLI reads \nolinkurl{evaluation/subjects.csv}. This mirrors the evaluated hard range; the notebook uses 60--110, both with target 95. Use a new empty directory; identical settings resume there. Controlled source, summary, or image failures write an incomplete manifest and stop before the next expensive stage; rerunning reuses valid cached outputs. A fresh run uses live article revisions and the current prompt, so it cannot recreate cached biographies or guarantee identical drawings.
+With no names, the CLI reads \nolinkurl{evaluation/subjects.csv}. This mirrors the evaluated hard range; the notebook uses 50--110, both with target 95. Use a new empty directory; identical settings resume there. Controlled source, summary, or image failures write an incomplete manifest and stop before the next expensive stage; rerunning reuses valid cached outputs. A fresh run uses live article revisions and the current prompt, so it cannot recreate cached biographies or guarantee identical drawings.
 
 After downloading the full new run as \nolinkurl{output/reproduction}, install the local requirements and generate its paired baseline with the following command. Local commands use PowerShell backtick line continuation; Bash uses a backslash instead:
 \begin{quote}\small\raggedright
@@ -209,3 +209,9 @@ Without \emph{-{}-annotations}, this command produces mechanical checks, readabi
 
 \paragraph{Annotation roles and missing provenance.}
 The archived \nolinkurl{claim_annotations.json} records one Codex-assisted pass on September 13, 2026, separate from Qwen, without human raters, external historical verification, or output edits. The reviewer supplied claim decomposition, evidence, labels, and notes; Python only checked hashes, ID validity, and list inclusion before aggregation. \nolinkurl{review_packet.md} archives numbered inputs. The exact reviewer model, settings, and complete instructions are unrecorded. Decisions can be inspected and reaggregated, but the judgment step is not fully reproducible.
+
+\subsection{Development Record and Local Verification}
+
+Repository commits record an initial integrated pipeline and batch processing on April 8--9, 2026 (\nolinkurl{b14f3b8}, \nolinkurl{d52b5b0}), a FLUX experiment on June 5 (\nolinkurl{da1b379}), the Qwen--FLUX Colab pipeline and T4 preset on September 3 (\nolinkurl{69c2e50}, \nolinkurl{1092d78}), evaluation work through September 13, and report/demo packaging on September 16--18. This is a retrospective record of commits, not a fixed original schedule; the repository's development record lists the dated evidence.
+
+On September 29, the local regression suite passed 34 tests; the development record gives the exact command. The suite uses mocks and small random models to check pipeline and evaluation behavior; it does not exercise the Qwen or FLUX checkpoints. The saved T4 manifest, eight generated pages, and combined book provide the separate operational evidence for the evaluated run. Its final invocation timestamp must not be read as a fresh end-to-end runtime.
